@@ -1,0 +1,36 @@
+name: getsetgo
+description: "A new Flutter project."
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1 # Your SDK version is 3.8.1, which is fine
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.1 # <--- ADD THIS LINE HERE
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo.png
+    - assets/images/icons8-arrow-24.png
+    - assets/images/home_bg_gif2.jpg
+    - assets/images/Blue home.png
+    - assets/images/Blue assistant.png
+    - assets/images/Profile picture circle.png
+    - assets/images/New habit icon (1).png
+    - assets/images/Setting icon (1).png
+    - assets/images/Ai_suggestion_bg.jpeg
+    - assets/images/habit_trend_graph.png
+    
