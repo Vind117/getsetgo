@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "693815159959",
+    "project_id": "react-native-tracker-d99aa",
+    "storage_bucket": "react-native-tracker-d99aa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693815159959:android:a9456a37c114082adb8dd2",
+        "android_client_info": {
+          "package_name": "com.example.getsetgo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693815159959-mpofaiis7n234eloq42jmnqni1698hbq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa27nJWqGRDCe-XEeiP6YYdnfXhTzCs6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693815159959-mpofaiis7n234eloq42jmnqni1698hbq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "693815159959-k3lrrjfqn758n3rr2b3h1t9ujuncemln.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.getsetgo"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693815159959:android:95b9ec8d9a1bbf1fdb8dd2",
+        "android_client_info": {
+          "package_name": "com.getsetgo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693815159959-koee6u22n5db8peiff6dnqn4tdebbkoq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.getsetgo",
+            "certificate_hash": "8365b1af8d91bbcc8c3256d91387633be3da8079"
+          }
+        },
+        {
+          "client_id": "693815159959-mpofaiis7n234eloq42jmnqni1698hbq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa27nJWqGRDCe-XEeiP6YYdnfXhTzCs6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693815159959-mpofaiis7n234eloq42jmnqni1698hbq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "693815159959-k3lrrjfqn758n3rr2b3h1t9ujuncemln.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.getsetgo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

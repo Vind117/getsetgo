@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:getsetgo/screens/habit_setting_screen.dart';
-import 'package:getsetgo/screens/home_screen.dart';
-import 'package:getsetgo/screens/logout_screen.dart'; // Assuming this is correct
-import 'package:http/http.dart' as http; // For making HTTP requests to your AI backend
-import 'dart:convert'; // For encoding/decoding JSON
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:getsetgo/screens/logout_screen.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:video_player/video_player.dart'; // Import video_player
 
-// Define a simple message model
+// ChatMessage class remains the same for displaying messages
 class ChatMessage {
   final String text;
-  final bool isUserMessage; // true for user, false for assistant
-
-  ChatMessage({required this.text, required this.isUserMessage});
+  final bool isUserMessage;
+  // Added a UniqueKey for better ListView item management with animations
+  final Key key;
+  ChatMessage({required this.text, required this.isUserMessage}) : key = UniqueKey();
 }
 
-// Convert StatelessWidget to StatefulWidget
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
 
@@ -21,122 +23,440 @@ class AssistantScreen extends StatefulWidget {
   State<AssistantScreen> createState() => _AssistantScreenState();
 }
 
-class _AssistantScreenState extends State<AssistantScreen> {
-  // Controller for the message input field
+class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
-  // List to hold all chat messages
+  // Changed to add messages at the end, and display them from bottom to top
   final List<ChatMessage> _messages = [];
+  final ScrollController _scrollController = ScrollController();
 
-  // Placeholder for your AI backend URL (replace with your actual API endpoint)
-  final String _aiApiUrl = 'YOUR_AI_BACKEND_API_URL/chat'; // e.g., 'https://your-chatbot-api.com/chat'
+  late FlutterTts flutterTts;
+  late SpeechToText _speechToText;
+  late VideoPlayerController _videoController; // Declare VideoPlayerController
 
-  // Function to send a message
-  void _handleSubmitted(String text) {
-    if (text.isEmpty) return; // Don't send empty messages
+  bool _isListening = false;
+  String _lastWords = '';
+  bool _isLoadingResponse = false;
+  bool _enableVoiceResponse = false;
+  bool _isShowingListeningIndicator = false;
 
-    _textController.clear(); // Clear the input field
+  late AnimationController _animationController;
 
-    // Add user message to the list and update UI
-    setState(() {
-      _messages.insert(0, ChatMessage(text: text, isUserMessage: true));
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+    _initSpeechToText();
+    _initVideoBackground(); // Initialize video background
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    // Add initial greeting message
+    _messages.add(ChatMessage(
+      text: "Hi there! 👋 How can I help you with your habits today? Do you have any questions about using GetSetGo, setting up new habits, or anything else related to your well-being journey?",
+      isUserMessage: false,
+    ));
+    _messages.add(ChatMessage(
+      text: "Okay! To help me understand how I can best assist you, could you tell me what you'd like to know or what you're looking for help with? For example, are you:\n\n* Trying to create a new habit?\n* Having trouble sticking to a habit?\n* Looking for ideas for healthy",
+      isUserMessage: false,
+    ));
+    // Simulate user sending "hi" from image
+    _messages.add(ChatMessage(text: "hi", isUserMessage: true));
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    flutterTts.stop();
+    _speechToText.stop();
+    _scrollController.dispose();
+    _animationController.dispose();
+    _videoController.dispose(); // Dispose video controller
+    super.dispose();
+  }
+
+  // --- TTS Initialization ---
+  void _initTts() {
+    flutterTts = FlutterTts();
+    flutterTts.setLanguage("en-US");
+    flutterTts.setSpeechRate(0.5);
+    flutterTts.setVolume(1.0);
+    flutterTts.setPitch(1.0);
+    flutterTts.setCompletionHandler(() {
+      print("TTS finished speaking");
     });
+    flutterTts.setErrorHandler((msg) {
+      print("TTS Error: $msg");
+    });
+  }
 
-    // --- INTEGRATE WITH YOUR AI BACKEND HERE ---
+  // --- STT Initialization ---
+  void _initSpeechToText() async {
+    _speechToText = SpeechToText();
+    bool available = await _speechToText.initialize(
+      onStatus: (status) => print('STT Status: $status'),
+      onError: (errorNotification) => print('STT Error: $errorNotification'),
+    );
+    if (!available) {
+      print('Speech recognition not available on this device.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition not available. Check device settings or permissions.')),
+        );
+      }
+    }
+  }
+
+  // --- Video Background Initialization ---
+  void _initVideoBackground() async {
+    _videoController = VideoPlayerController.asset('assets/videos/bg_animation.mp4'); // Path to your video
+    await _videoController.initialize();
+    _videoController.setLooping(true); // Loop the video
+    _videoController.setVolume(0.0); // Mute the video
+    _videoController.play();
+    setState(() {}); // Rebuild to show the video player
+  }
+
+  // --- Handle Text Input and Send Message ---
+  void _handleSubmitted(String text) {
+    if (text.isEmpty) return;
+    _textController.clear();
+    setState(() {
+      if (_isShowingListeningIndicator) {
+        _isShowingListeningIndicator = false;
+      }
+      // Add message to the end of the list
+      _messages.add(ChatMessage(text: text, isUserMessage: true));
+      _isLoadingResponse = true;
+      _enableVoiceResponse = false;
+    });
+    _scrollToBottom();
     _getAIResponse(text);
   }
 
-  // Function to simulate AI response (replace with actual API call)
+  // --- Voice Input Toggle ---
+  void _toggleListening() async {
+    if (_isListening) {
+      _speechToText.stop();
+      setState(() {
+        _isListening = false;
+        _animationController.reverse();
+        _isShowingListeningIndicator = false;
+      });
+      if (_lastWords.isNotEmpty) {
+        _handleSubmitted(_lastWords);
+      }
+      _lastWords = '';
+    } else {
+      _lastWords = '';
+      bool available = await _speechToText.initialize(
+        onStatus: (status) {
+          if (status == 'listening') {
+            setState(() {
+              _isListening = true;
+              _enableVoiceResponse = true;
+              _animationController.forward();
+              _isShowingListeningIndicator = true;
+            });
+          } else if (status == 'done' || status == 'notListening') {
+            setState(() {
+              _isListening = false;
+              _animationController.reverse();
+              _isShowingListeningIndicator = false;
+              _enableVoiceResponse = false;
+            });
+            if (_lastWords.isNotEmpty) {
+              _handleSubmitted(_lastWords);
+            }
+            _lastWords = '';
+          }
+        },
+        onError: (errorNotification) {
+          print('STT Error: ${errorNotification.errorMsg}');
+          setState(() {
+            _isListening = false;
+            _enableVoiceResponse = false;
+            _animationController.reverse();
+            _isShowingListeningIndicator = false;
+            // Add error message to the chat
+            _messages.add(ChatMessage(text: 'Voice input error: ${errorNotification.errorMsg.split(':')[0]}. Please try again.', isUserMessage: false));
+            _scrollToBottom();
+          });
+          _lastWords = '';
+        },
+      );
+      if (available) {
+        _speechToText.listen(
+          onResult: (result) {
+            setState(() {
+              _lastWords = result.recognizedWords;
+              _textController.text = _lastWords;
+            });
+          },
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 3),
+          onDevice: true,
+        );
+      } else {
+        setState(() {
+          _isListening = false;
+          _enableVoiceResponse = false;
+          _isShowingListeningIndicator = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition not available on this device.')),
+        );
+      }
+    }
+  }
+
+  // --- Get AI Response from Gemini API ---
   Future<void> _getAIResponse(String userMessage) async {
-    // Simulate network delay or actual API call
-    await Future.delayed(const Duration(seconds: 1)); // Simulate loading time
+    List<Map<String, dynamic>> apiChatContents = [];
+
+    // Add system instructions
+    apiChatContents.add({
+      "role": "user",
+      "parts": [{"text": "You are a helpful AI assistant for a habit tracker application called 'GetSetGo'. Your goal is to assist users with questions related to habit tracking, health and fitness habits, creating habit plans, and general well-being advice. Be encouraging and provide actionable advice. If a user asks something unrelated, gently steer them back to habits or health topics."}]
+    });
+    apiChatContents.add({"role": "model", "parts": [{"text": "Hello! How can I assist you today regarding your habits or health?"}]});
+
+    // Populate chat history for Gemini API. _messages already contains the new user message.
+    // We need to send them in chronological order for the API.
+    for (var msg in _messages.where((msg) => !msg.text.startsWith('Listening'))) {
+      apiChatContents.add({
+          "role": msg.isUserMessage ? "user" : "model",
+          "parts": [{"text": msg.text}]
+      });
+    }
+
+    final String apiKey = "AIzaSyDsWC-KmRBNuAmYwbajjMGlNz7IaM2zr14"; // Ensure this is a valid and secure API key
+    final String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey";
 
     try {
-      // --- ACTUAL AI API CALL ---
-      // This is where you'd call your Dialogflow, Gemini API, or custom backend
       final response = await http.post(
-        Uri.parse(_aiApiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'message': userMessage}),
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Flutter Habit Tracker App',
+        },
+        body: json.encode({'contents': apiChatContents}),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        String aiResponseText = responseData['response']; // Adjust based on your API's JSON structure
+        String aiResponseText = "I'm sorry, I couldn't understand that.";
 
-        // Add AI response to the list and update UI
+        if (responseData['candidates'] != null &&
+            responseData['candidates'].isNotEmpty &&
+            responseData['candidates'][0]['content'] != null &&
+            responseData['candidates'][0]['content']['parts'] != null &&
+            responseData['candidates'][0]['content']['parts'].isNotEmpty) {
+          aiResponseText = responseData['candidates'][0]['content']['parts'][0]['text'];
+        }
+
         setState(() {
-          _messages.insert(0, ChatMessage(text: aiResponseText, isUserMessage: false));
+          // Add AI message to the end of the list
+          _messages.add(ChatMessage(text: aiResponseText, isUserMessage: false));
+          _isLoadingResponse = false;
         });
+        _scrollToBottom();
+        if (_enableVoiceResponse) {
+          _speak(aiResponseText);
+        }
       } else {
-        // Handle API error
-        setState(() {
-          _messages.insert(0, ChatMessage(text: 'Error: Could not get a response from AI. Status: ${response.statusCode}', isUserMessage: false));
-        });
+        String errorMsg = 'Error getting response: HTTP ${response.statusCode}';
+        if (response.statusCode == 400) {
+            errorMsg += '. (Bad Request: Check request format, especially chat history roles. Response body: ${response.body})';
+        } else if (response.statusCode == 403) {
+          errorMsg += '. (Forbidden: API key might be invalid or lacking permissions, or Gemini API is not enabled for your project.)';
+        } else if (response.statusCode == 429) {
+          errorMsg += '. (Rate Limit Exceeded: Too many requests. Try again later.)';
+        }
         print('API Error: ${response.statusCode} - ${response.body}');
+        setState(() {
+          // Add error message to the end of the list
+          _messages.add(ChatMessage(text: errorMsg, isUserMessage: false));
+          _isLoadingResponse = false;
+        });
+        _scrollToBottom();
+        if (_enableVoiceResponse) {
+          _speak('I encountered an error getting a response. Please check the console for details.');
+        }
       }
     } catch (e) {
-      // Handle network or parsing errors
-      setState(() {
-        _messages.insert(0, ChatMessage(text: 'Error: Failed to connect to AI. Please check your internet connection.', isUserMessage: false));
-      });
       print('Network/Parsing Error: $e');
+      setState(() {
+        // Add error message to the end of the list
+        _messages.add(ChatMessage(text: 'Error connecting to AI. Please check your internet connection.', isUserMessage: false));
+        _isLoadingResponse = false;
+      });
+      _scrollToBottom();
+      if (_enableVoiceResponse) {
+        _speak('I\'m having trouble connecting. Please check your internet connection and try again.');
+      }
     }
   }
 
-  // Widget to build individual message bubbles
-  Widget _buildMessage(ChatMessage message) {
-    // Align messages based on who sent them
-    final alignment = message.isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final color = message.isUserMessage ? Colors.blue[600] : Colors.grey[200];
-    final textColor = message.isUserMessage ? Colors.white : Colors.black;
-    const double cornerRadius = 12.0; // Define the radius value
+  // --- Text-to-Speech Function ---
+  Future<void> _speak(String text) async {
+    if (text.isNotEmpty) {
+      await flutterTts.speak(text);
+    }
+  }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: alignment,
+  // --- Scroll to the bottom of the chat list ---
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent, // Scroll to the end
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack( // Use a Stack to layer the video and chat UI
         children: [
-          Row(
-            mainAxisAlignment: message.isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+          // Video background layer
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _videoController.value.isInitialized ? _videoController.value.size.width : 0,
+                height: _videoController.value.isInitialized ? _videoController.value.size.height : 0,
+                child: _videoController.value.isInitialized
+                    ? VideoPlayer(_videoController)
+                    : Container(color: Colors.black), // Fallback for when video is not initialized
+              ),
+            ),
+          ),
+          // Original Column content for the chat UI
+          Column(
             children: [
-              if (!message.isUserMessage) // Show AI image only for assistant messages
-                Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Image.asset('assets/images/Blue assistant.png', height: 40, width: 40), // Smaller AI icon
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                title: const Text(
+                  'ASSISTANT',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 5.0,
+                        color: Colors.black45,
+                        offset: Offset(2.0, 2.0),
+                      ),
+                    ],
+                  ),
                 ),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: message.isUserMessage
-                        ? BorderRadius.only(
-                            // CORRECTED: Pass Radius.circular(cornerRadius) for each corner
-                            topLeft: Radius.circular(cornerRadius),
-                            bottomLeft: Radius.circular(cornerRadius),
-                            bottomRight: Radius.circular(cornerRadius),
-                          )
-                        : BorderRadius.only(
-                            // CORRECTED: Pass Radius.circular(cornerRadius) for each corner
-                            topRight: Radius.circular(cornerRadius),
-                            bottomLeft: Radius.circular(cornerRadius),
-                            bottomRight: Radius.circular(cornerRadius),
-                          ),
+                centerTitle: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LogoutScreen()),
+                      );
+                    },
                   ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(color: textColor, fontSize: 16.0),
-                  ),
+                ],
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  // Removed `reverse: true`
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    // Removed SlideTransition here for simplicity and to ensure visibility
+                    // If you want animation per message, consider AnimatedList or more complex state.
+                    return _buildMessage(_messages[index]);
+                  },
                 ),
               ),
-              if (message.isUserMessage) // Show user icon (optional)
-                 Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                   child: const CircleAvatar( // Added const here
-                      radius: 20,
-                      child: Icon(Icons.person), // Or use an asset for user avatar
-                   ),
-                 ),
+              if (_isLoadingResponse)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  ),
+                ),
+              // Place listening indicator above the input field
+              if (_isShowingListeningIndicator)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Listening: $_lastWords',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        onSubmitted: _handleSubmitted,
+                        decoration: InputDecoration(
+                          hintText: 'Message the AI assistant...',
+                          hintStyle: TextStyle(color: Colors.grey.shade600),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.9),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide(color: Colors.grey.shade400, width: 1.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 12.0),
+                        ),
+                        style: const TextStyle(color: Colors.black, fontSize: 16.0),
+                        cursorColor: Theme.of(context).primaryColor,
+                        enabled: !_isListening,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FloatingActionButton(
+                      onPressed: _isLoadingResponse || _isListening ? null : () => _handleSubmitted(_textController.text),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 12),
+                    FloatingActionButton(
+                      onPressed: _toggleListening,
+                      backgroundColor: _isListening ? Colors.redAccent.shade700 : Theme.of(context).primaryColor,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      child: Icon(
+                        _isListening ? Icons.mic_off_rounded : Icons.mic_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -144,105 +464,81 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text('ASSISTANT'),
-        centerTitle: true,
-      ),
-      body: Column(
+  Widget _buildMessage(ChatMessage message) {
+    final alignment = message.isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final color = message.isUserMessage ? Theme.of(context).primaryColor : Colors.grey[200];
+    final textColor = message.isUserMessage ? Colors.white : Colors.black87;
+    const double cornerRadius = 18.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Column(
+        crossAxisAlignment: alignment,
         children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              reverse: true, // To show latest messages at the bottom
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                return _buildMessage(_messages[index]);
-              },
-            ),
-          ),
-          
-          // Message input field
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    onSubmitted: _handleSubmitted, // Submit on Enter key
-                    decoration: InputDecoration(
-                      hintText: 'Message',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25), // Make it more rounded
+          Row(
+            mainAxisAlignment: message.isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!message.isUserMessage)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+                  child: Image.asset('assets/images/Blue assistant.png', height: 36, width: 36),
+                ),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: message.isUserMessage
+                        ? const BorderRadius.only(
+                            topLeft: Radius.circular(cornerRadius),
+                            bottomLeft: Radius.circular(cornerRadius),
+                            bottomRight: Radius.circular(cornerRadius),
+                          )
+                        : const BorderRadius.only(
+                            topRight: Radius.circular(cornerRadius),
+                            bottomLeft: Radius.circular(cornerRadius),
+                            bottomRight: Radius.circular(cornerRadius),
+                          ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                    ],
+                  ),
+                  child: Text(
+                    message.text,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 16.0,
+                      shadows: message.isUserMessage ? [ // Add shadow only for user messages
+                        Shadow(
+                          blurRadius: 2.0,
+                          color: Colors.black.withOpacity(0.5), // Subtle black shadow for white text
+                          offset: const Offset(1.0, 1.0),
+                        ),
+                      ] : null, // No shadow for AI messages
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: () => _handleSubmitted(_textController.text), // Submit on button tap
-                  backgroundColor: Theme.of(context).primaryColor, // Use theme color
-                  child: const Icon(Icons.send, color: Colors.white),
-                )
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2, // Assistant is at index 2
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              // Only navigate if not already on the screen
-              if (ModalRoute.of(context)?.settings.name != '/') { // Assuming HomeScreen is '/'
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  (Route<dynamic> route) => false, // Clears all routes below
-                );
-              }
-              break;
-            case 1:
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const HabitSettingScreen()));
-              break;
-            case 2:
-              // Already on AssistantScreen, do nothing
-              break;
-            case 3:
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LogoutScreen()));
-              break;
-          }
-        },
-        selectedItemColor: Theme.of(context).primaryColor, // Highlight selected icon
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline), // Or Icons.format_list_bulleted for 'Habits'
-            label: 'Habit Setting', // Changed from 'New Habit' to match typical usage for a habits app
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy_outlined),
-            label: 'Assistant',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings), // Or Icons.leaderboard for 'Progress', Icons.person for 'Profile'
-            label: 'Settings', // Changed from 'Settings' for consistency
+              ),
+              if (message.isUserMessage)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                  child: CircleAvatar(
+                    radius: 18,
+                    child: Image.asset(
+                      'assets/images/avatar.png',
+                      fit: BoxFit.cover,
+                      width: 36,
+                      height: 36,
+                    ),
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
