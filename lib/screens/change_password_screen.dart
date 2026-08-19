@@ -1,8 +1,9 @@
 // lib/screens/change_password_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:getsetgo/widgets/animated_background.dart';
-// import 'package:http/http.dart' as http; // For backend API calls
-// import 'dart:convert'; // For json.encode
+import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED: For Firebase Authentication
+import 'package:getsetgo/screens/forgot_password_screen.dart'; // REQUIRED: Import ForgotPasswordScreen
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -12,9 +13,11 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   final _formKey = GlobalKey<FormState>(); // Key for form validation
 
@@ -39,67 +42,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
       String currentPassword = _currentPasswordController.text;
       String newPassword = _newPasswordController.text;
-      String confirmPassword = _confirmPasswordController.text;
-
-      // Basic validation (more robust validation should be done server-side too)
-      if (newPassword != confirmPassword) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('New password and confirm password do not match!')),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (newPassword.length < 8) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('New password must be at least 8 characters long.')),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // TODO: Implement actual backend integration here
-      // This is where you would send an HTTP POST request to your API
-      // to change the user's password. You typically send the current password
-      // for re-authentication and the new password.
 
       try {
-        // Simulate an API call
-        await Future.delayed(const Duration(seconds: 2)); // Simulate network delay
+        User? user = FirebaseAuth.instance.currentUser;
 
-        // Example using http package:
-        /*
-        final response = await http.post(
-          Uri.parse('YOUR_BACKEND_API_ENDPOINT/change-password'), // Replace with your API endpoint
-          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer YOUR_AUTH_TOKEN'},
-          body: json.encode({
-            'currentPassword': currentPassword,
-            'newPassword': newPassword,
-          }),
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No user is currently signed in.')),
+          );
+          return;
+        }
+
+        // Re-authenticate the user with their current password
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!, // Assuming email is not null for signed-in users
+          password: currentPassword,
         );
 
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Password updated successfully!')),
-          );
-          Navigator.pop(context); // Go back after successful update
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update password: ${response.body}')),
-          );
-        }
-        */
+        await user.reauthenticateWithCredential(credential);
 
-        // For now, just print the passwords and show a success message
-        print('Current Password: $currentPassword');
-        print('New Password: $newPassword');
+        // Update the password
+        await user.updatePassword(newPassword);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated successfully (simulated)!')),
+          const SnackBar(content: Text('Password updated successfully!')),
         );
 
         // Clear the fields after successful update
@@ -107,12 +73,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         _newPasswordController.clear();
         _confirmPasswordController.clear();
 
-        Navigator.pop(context); // Go back after successful update
+        if (mounted) {
+          Navigator.pop(context); // Go back after successful update
+        }
+      } on FirebaseAuthException catch (e) {
+        String message;
+        if (e.code == 'wrong-password') {
+          message = 'Incorrect current password.';
+        } else if (e.code == 'requires-recent-login') {
+          message =
+              'This operation is sensitive and requires recent authentication. Please log in again.';
+        } else if (e.code == 'weak-password') {
+          message = 'The new password is too weak.';
+        } else {
+          message = 'Failed to update password: ${e.message}';
+        }
 
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        print('Firebase Auth Error (Change Password): ${e.code} - ${e.message}');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating password: $e')),
+          SnackBar(content: Text('Error updating password: ${e.toString()}')),
         );
+        print('General Error (Change Password): ${e.toString()}');
       } finally {
         setState(() {
           _isLoading = false;
@@ -147,18 +132,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form( // Wrap with Form for validation
+          child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '@aravind1107',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
-                  ),
-                ),
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
@@ -233,7 +211,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'Update Password',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),
@@ -243,8 +222,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   alignment: Alignment.center,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password flow (e.g., navigate to a forgot password screen)
-                      print('Forgot your Password? tapped!');
+                      // Navigate to ForgotPasswordScreen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       'Forget your Password?',
@@ -260,16 +244,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  Widget _buildPasswordField(String label, TextEditingController controller, bool obscureText, VoidCallback toggleObscure, {String? hintText, String? Function(String?)? validator}) {
+  Widget _buildPasswordField(
+    String label,
+    TextEditingController controller,
+    bool obscureText,
+    VoidCallback toggleObscure, {
+    String? hintText,
+    String? Function(String?)? validator,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 8),
-        TextFormField( // Use TextFormField for validation capabilities
+        TextFormField(
           controller: controller,
           obscureText: obscureText,
           decoration: InputDecoration(

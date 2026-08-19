@@ -70,6 +70,29 @@ class HabitService {
             .toList());
   }
 
+  // NEW: Method to get a single habit by its ID
+  Future<Habit?> getHabitById(String habitId, String userId) async {
+    try {
+      // Query the top-level 'habits' collection, filtering by document ID and userId
+      final querySnapshot = await _firestore
+          .collection('habits')
+          .where(FieldPath.documentId, isEqualTo: habitId) // Filter by document ID
+          .where('userId', isEqualTo: userId) // Ensure it belongs to the user
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        return Habit.fromFirestore(doc); // Use fromFirestore for consistency
+      }
+      return null;
+    } catch (e) {
+      print("Error getting habit by ID: $e");
+      return null;
+    }
+  }
+
+
   // --- Methods for Habit Entries ---
 
   // Method to add a new habit entry for a specific date

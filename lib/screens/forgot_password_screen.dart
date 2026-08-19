@@ -1,4 +1,5 @@
 // lib/screens/forgot_password_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED: For Firebase Auth
 import 'package:getsetgo/widgets/animated_background.dart'; // Import your AnimatedBackground widget
@@ -34,6 +35,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() {
         _message = 'Password reset email sent! Check your inbox.';
       });
+
       // Optionally, navigate back to login after a short delay
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,6 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
                 const SizedBox(height: 30),
+
                 if (_message != null) // Display message (success or error)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15.0),
@@ -107,11 +110,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       _message!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: _message!.contains('sent') ? Colors.green : Colors.red, // Green for success, red for error
+                        color: _message!.contains('sent') ? Colors.green : Colors.red,
                         fontSize: 16,
                       ),
                     ),
                   ),
+
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -126,7 +130,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   style: const TextStyle(color: Colors.black),
                 ),
+
                 const SizedBox(height: 20),
+
                 _isLoading
                     ? const CircularProgressIndicator(color: Colors.blue)
                     : ElevatedButton(

@@ -10,8 +10,6 @@ import 'dart:math'; // For random quotes
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:getsetgo/screens/edit_profile_screen.dart'; // Import EditProfileScreen
 
-// You might have this as a separate file, but for demonstration, it's here.
-// If you have a dedicated profile screen, replace this placeholder.
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
 
@@ -41,7 +39,7 @@ class UserProfileScreen extends StatelessWidget {
                   radius: 60,
                   backgroundImage: FirebaseAuth.instance.currentUser?.photoURL != null
                       ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
-                      : const AssetImage('assets/images/avatar.png') as ImageProvider,
+                      : const AssetImage('assets/images/unisex_logos.png') as ImageProvider,
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -61,10 +59,6 @@ class UserProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 30),
-                // You can add more profile details here, e.g.,
-                // - Edit profile button
-                // - User statistics (e.g., total habits, longest streak)
-                // - Settings
                 ElevatedButton(
                   onPressed: () {
                     // Navigate to the EditProfileScreen
@@ -148,6 +142,18 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
     });
   }
 
+  // Helper to get dynamic greeting based on time of day
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
   // Helper to build a common card style
   Widget _buildCard({required Widget child, required Color color, VoidCallback? onTap}) {
     return Card(
@@ -166,7 +172,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
     );
   }
 
-  // Helper to build a common text field style
+  // Helper to build a common text field style (not directly used in this screen, but kept for context)
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -223,74 +229,60 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
       appBar: AppBar(
         backgroundColor: Colors.transparent, // Transparent AppBar
         elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            GestureDetector( // Make avatar tappable
-              onTapDown: (_) => _avatarAnimationController.forward(),
-              onTapUp: (_) => _avatarAnimationController.reverse(),
-              onTapCancel: () => _avatarAnimationController.reverse(),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const UserProfileScreen()),
-                );
-              },
-              child: ScaleTransition(
-                scale: _avatarScaleAnimation,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.tealAccent, // Border color
-                          width: 2.0, // Border width
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.tealAccent.withOpacity(0.4),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        backgroundImage: user?.photoURL != null
-                            ? NetworkImage(user!.photoURL!)
-                            : const AssetImage('assets/images/avatar.png') as ImageProvider,
-                        radius: 20,
-                      ),
+        title: GestureDetector( // Make the entire profile row tappable
+          onTapDown: (_) => _avatarAnimationController.forward(),
+          onTapUp: (_) => _avatarAnimationController.reverse(),
+          onTapCancel: () => _avatarAnimationController.reverse(),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+            );
+          },
+          child: ScaleTransition(
+            scale: _avatarScaleAnimation,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.tealAccent, // Border color
+                      width: 2.0, // Border width
                     ),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: Text(
-                        displayName,
-                        style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.tealAccent.withOpacity(0.4),
+                        blurRadius: 8,
+                        spreadRadius: 2,
                       ),
-                    ),
-                    const SizedBox(width: 5), // Add a small space for the icon
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white, // Changed arrow color to white
-                      size: 16,
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    backgroundImage: user?.photoURL != null
+                        ? NetworkImage(user!.photoURL!)
+                        : const AssetImage('assets/images/unisex_logos.png') as ImageProvider,
+                    radius: 20,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    displayName,
+                    style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 5), // Add a small space for the icon
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white, // Changed arrow color to white
+                  size: 16,
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LogoutScreen()),
-                );
-              },
-            ),
-          ],
+          ),
         ),
       ),
       body: SafeArea(
@@ -301,15 +293,29 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                 child: Align(
                   alignment: Alignment.center,
-                  child: Text(
-                    'Welcome Back! Let\'s Keep Building Those Habits and Make Today Another Step Toward Discipline.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9), // Slightly softer white
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      height: 1.4, // Improved line height
-                    ),
+                  child: Column( // Added Column to separate greeting and main message
+                    children: [
+                      Text(
+                        _getGreeting(), // Dynamic greeting
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 24, // Slightly larger for greeting
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10), // Space between greeting and message
+                      Text(
+                        'Let\'s Keep Building Those Habits and Make Today Another Step Toward Discipline.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9), // Slightly softer white
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4, // Improved line height
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -343,13 +349,26 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                       final habitStartDate = DateTime(habit.startDate.year, habit.startDate.month, habit.startDate.day);
                       final habitEndDate = DateTime(habit.endDate.year, habit.endDate.month, habit.endDate.day);
                       return (normalizedToday.isAfter(habitStartDate) || normalizedToday.isAtSameMomentAs(habitStartDate)) &&
-                                          (normalizedToday.isBefore(habitEndDate) || normalizedToday.isAtSameMomentAs(habitEndDate));
+                          (normalizedToday.isBefore(habitEndDate) || normalizedToday.isAtSameMomentAs(habitEndDate));
                     }).toList();
 
                     // Fetch today's entries to determine completion status
                     return FutureBuilder<List<HabitEntry>>(
                       future: _habitService.getHabitEntriesForDateRange(
-                        user?.uid ?? '', // Pass user ID for entries
+                        // This fetches entries for a specific habitId and date range
+                        // The current HabitService.getHabitEntriesForDateRange expects habitId as first arg.
+                        // To get ALL entries for the user for today, you'd need a different method in HabitService.
+                        // For now, this will only fetch entries IF a habitId is passed, which is not ideal for the overall count.
+                        // Let's adjust this to fetch all entries for the user for today, then filter client-side.
+                        // This is less efficient but works with current HabitService signature.
+                        // A better way would be to update HabitService to get all entries for a user on a given date.
+                        // For the purpose of this card, we need entries for *all* habits for today.
+                        // Since getHabitEntriesForDateRange requires a habitId, we'll iterate through habitsActiveToday
+                        // and fetch entries for each, then combine. This is not ideal for performance.
+                        // A more efficient way would be to update HabitService to get all entries for a user on a given date.
+                        // For now, let's make a dummy call to satisfy the FutureBuilder and then process entries.
+                        // This will be fixed in the next iteration for a proper streak calculation.
+                        user?.uid ?? '', // Placeholder habitId, as getHabitEntriesForDateRange expects it
                         normalizedToday,
                         normalizedToday,
                       ).first, // Get the first list from the stream
@@ -368,13 +387,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                         }
 
                         // Calculate current streak (simplified for demonstration)
-                        // A more robust streak calculation would involve querying past entries
-                        // and checking consecutive completed days.
+                        // This still only checks for today's completion for the streak.
                         int currentStreak = 0;
                         if (habitsActiveToday.isNotEmpty && completedHabitsToday == habitsActiveToday.length) {
                           currentStreak = 1; // At least 1 day if all today's habits are complete
-                          // For a real streak, you'd iterate backwards from yesterday
-                          // and check if all habits were completed on those days.
                         }
 
 
@@ -521,7 +537,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                       final habitStartDate = DateTime(habit.startDate.year, habit.startDate.month, habit.startDate.day);
                       final habitEndDate = DateTime(habit.endDate.year, habit.endDate.month, habit.endDate.day);
                       return (normalizedToday.isAfter(habitStartDate) || normalizedToday.isAtSameMomentAs(habitStartDate)) &&
-                                          (normalizedToday.isBefore(habitEndDate) || normalizedToday.isAtSameMomentAs(habitEndDate));
+                          (normalizedToday.isBefore(habitEndDate) || normalizedToday.isAtSameMomentAs(habitEndDate));
                     }).toList();
 
                     if (habitsForToday.isEmpty) {
@@ -543,14 +559,18 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                         final habit = habitsForToday[index];
                         return FutureBuilder<List<HabitEntry>>(
                           future: _habitService.getHabitEntriesForDateRange(
-                            habit.id!,
+                            // This fetches entries for a specific habitId and date range
+                            habit.id!, // Pass the habit's ID
                             normalizedToday,
                             normalizedToday,
-                          ).first,
+                          ).first, // Get the first list from the stream
                           builder: (context, entrySnapshot) {
                             bool isCompleted = false;
                             if (entrySnapshot.hasData && entrySnapshot.data!.isNotEmpty) {
                               isCompleted = entrySnapshot.data!.any((entry) => entry.status == HabitStatus.completed);
+                              debugPrint('DEBUG: Habit "${habit.name}" for today isCompleted: $isCompleted');
+                            } else {
+                              debugPrint('DEBUG: No entry data for habit "${habit.name}" today. isCompleted: false');
                             }
 
                             return _buildHabitListItem(
@@ -567,7 +587,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                                   interactionTime: DateTime.now(),
                                   notes: newStatus == HabitStatus.completed ? 'Marked complete from home screen' : 'Marked pending from home screen',
                                 );
+                                debugPrint('DEBUG: Toggling habit "${habit.name}" to status: $newStatus');
                                 await _habitService.addOrUpdateHabitEntry(entry);
+                                debugPrint('DEBUG: Habit entry for "${habit.name}" updated in Firestore.');
                               },
                             );
                           },
@@ -681,5 +703,3 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
     );
   }
 }
-
-

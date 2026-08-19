@@ -1,4 +1,5 @@
-// lib/screens/edit_habit_screen.dart
+// lib/screens/edit_habit_screen.dart 
+
 import 'package:flutter/material.dart';
 import 'package:getsetgo/widgets/animated_background.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ class EditHabitScreen extends StatefulWidget {
 
 class _EditHabitScreenState extends State<EditHabitScreen> {
   final _formKey = GlobalKey<FormState>();
+
   late TextEditingController _habitNameController;
   late TextEditingController _startDateController;
   late TextEditingController _endDateController;
@@ -31,7 +33,14 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
   TimeOfDay? _selectedReminderTime;
 
   String? _selectedCategory;
-  final List<String> _categories = ['Health', 'Learning', 'Productivity', 'Self-Care', 'Social', 'Other'];
+  final List<String> _categories = [
+    'Health',
+    'Learning',
+    'Productivity',
+    'Self-Care',
+    'Social',
+    'Other',
+  ];
 
   bool _isLoading = false;
 
@@ -41,12 +50,20 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
   @override
   void initState() {
     super.initState();
+
     // Initialize controllers with existing habit data
     _habitNameController = TextEditingController(text: widget.habitToEdit.name);
+
     _selectedStartDate = widget.habitToEdit.startDate;
-    _startDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(_selectedStartDate));
+    _startDateController = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(_selectedStartDate),
+    );
+
     _selectedEndDate = widget.habitToEdit.endDate;
-    _endDateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(_selectedEndDate));
+    _endDateController = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(_selectedEndDate),
+    );
+
     _durationController = TextEditingController(text: widget.habitToEdit.duration);
     _selectedReminderTime = widget.habitToEdit.reminderTime;
     _notesController = TextEditingController(text: widget.habitToEdit.notes);
@@ -60,7 +77,8 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Initialize _reminderTimeController.text here, as context is now available
-    _reminderTimeController.text = _selectedReminderTime != null ? _selectedReminderTime!.format(context) : '';
+    _reminderTimeController.text =
+        _selectedReminderTime != null ? _selectedReminderTime!.format(context) : '';
   }
 
   @override
@@ -95,6 +113,7 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
         );
       },
     );
+
     if (picked != null) {
       if (!mounted) return;
       setState(() {
@@ -123,15 +142,14 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
               onSurface: Colors.white,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.blue,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.blue),
             ),
           ),
           child: child!,
         );
       },
     );
+
     if (picked != null && picked != _selectedReminderTime) {
       if (!mounted) return;
       setState(() {
@@ -182,7 +200,9 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Exact alarm permission is permanently denied. Please enable it in app settings.'),
+              content: const Text(
+                'Exact alarm permission is permanently denied. Please enable it in app settings.',
+              ),
               action: SnackBarAction(
                 label: 'SETTINGS',
                 onPressed: () {
@@ -201,7 +221,9 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
       if (!status.isGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Exact alarm permission not granted. Notifications may not work.')),
+            const SnackBar(
+              content: Text('Exact alarm permission not granted. Notifications may not work.'),
+            ),
           );
         }
       }
@@ -245,18 +267,25 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
 
             if (scheduledDateTime.isAfter(DateTime.now())) {
               await _notificationService.scheduleHabitNotification(
-                notificationId: '${updatedHabit.id}-${scheduledDateTime.year}-${scheduledDateTime.month}-${scheduledDateTime.day}',
+                notificationId:
+                    '${updatedHabit.id}-${scheduledDateTime.year}-${scheduledDateTime.month}-${scheduledDateTime.day}',
                 habitName: updatedHabit.name,
                 scheduledTime: scheduledDateTime,
                 habitFirestoreId: updatedHabit.id!,
               );
-              print('DEBUG: Scheduled new notification for ${updatedHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
+              print(
+                'DEBUG: Scheduled new notification for ${updatedHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}',
+              );
             } else {
-              print('DEBUG: Skipping past new notification for ${updatedHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
+              print(
+                'DEBUG: Skipping past new notification for ${updatedHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}',
+              );
             }
           }
         } else {
-          print('DEBUG: Skipping new notification scheduling due to missing exact alarm permission or no reminder time set.');
+          print(
+            'DEBUG: Skipping new notification scheduling due to missing exact alarm permission or no reminder time set.',
+          );
         }
         // --- End Notification Rescheduling Logic ---
 

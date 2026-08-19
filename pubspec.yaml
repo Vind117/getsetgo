@@ -29,7 +29,7 @@ dependencies:
   firebase_auth: ^5.6.0
   cloud_firestore: ^5.6.9
   fl_chart: ^0.68.0
-  google_sign_in: ^6.2.1
+  # Removed: google_sign_in: ^6.2.1
 
   country_picker: ^2.0.21
 
@@ -75,3 +75,5 @@ flutter:
     - assets/images/google_icon.png
     - assets/images/stats_section.png
     - assets/videos/bg_animation.mp4
+    - assets/images/getsetgo_logo.png
+    - assets/images/unisex_logos.png

@@ -1,7 +1,8 @@
 // lib/screens/signup_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED: For Firebase Authentication
-import 'package:cloud_firestore/cloud_firestore.dart'; // REQUIRED: To save user's name (optional, but good practice)
+import 'package:cloud_firestore/cloud_firestore.dart'; // REQUIRED: To save user's name
 import 'package:getsetgo/screens/main_app_screen.dart'; // Ensure MainAppScreen is imported
 import 'package:getsetgo/widgets/animated_background.dart';
 
@@ -16,11 +17,12 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
-  bool _isLoading = false; // To show/hide loading indicator during signup
-  String? _errorMessage; // To display error messages
-  bool _agreedToTerms = false; // State for the checkbox
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _agreedToTerms = false;
 
   @override
   void dispose() {
@@ -34,10 +36,10 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signUp() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null; // Clear previous errors
+      _errorMessage = null;
     });
 
-    // Basic client-side validation
+    // Basic validation
     if (_nameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty ||
@@ -49,7 +51,8 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+    if (_passwordController.text.trim() !=
+        _confirmPasswordController.text.trim()) {
       setState(() {
         _errorMessage = 'Passwords do not match.';
         _isLoading = false;
@@ -59,36 +62,40 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (!_agreedToTerms) {
       setState(() {
-        _errorMessage = 'You must agree to the Terms and Conditions and Privacy Policy.';
+        _errorMessage =
+            'You must agree to the Terms and Conditions and Privacy Policy.';
         _isLoading = false;
       });
       return;
     }
 
     try {
-      // 1. Create user with Email and Password
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      // 1. Create user
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // 2. Optionally, update user profile (display name)
+      // 2. Update profile
       await userCredential.user?.updateDisplayName(_nameController.text.trim());
 
-      // 3. Store additional user data in Firestore (e.g., the user's name)
-      // This is highly recommended if you have a 'Name' field.
-      await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
+      // 3. Save user in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(), // Timestamp of creation
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // If signup is successful, navigate to MainAppScreen and remove all previous routes
+      // 4. Navigate to main screen
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const MainAppScreen()),
-          (Route<dynamic> route) => false, // This clears the navigation stack
+          (Route<dynamic> route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -99,22 +106,22 @@ class _SignupScreenState extends State<SignupScreen> {
         message = 'An account already exists for that email.';
       } else if (e.code == 'invalid-email') {
         message = 'The email address is not valid.';
-      }
-      else {
+      } else {
         message = 'Sign up failed: ${e.message}';
       }
+
       setState(() {
         _errorMessage = message;
       });
-      print('Firebase Auth Error: ${e.code} - ${e.message}'); // For debugging
+      print('Firebase Auth Error: ${e.code} - ${e.message}');
     } catch (e) {
       setState(() {
         _errorMessage = 'An unexpected error occurred: ${e.toString()}';
       });
-      print('General Sign Up Error: ${e.toString()}'); // For debugging
+      print('General Sign Up Error: ${e.toString()}');
     } finally {
       setState(() {
-        _isLoading = false; // Always stop loading, whether success or fail
+        _isLoading = false;
       });
     }
   }
@@ -127,7 +134,11 @@ class _SignupScreenState extends State<SignupScreen> {
         appBar: AppBar(
           title: const Text(
             'Sign Up',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
@@ -135,7 +146,7 @@ class _SignupScreenState extends State<SignupScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
-              Navigator.pop(context); // Go back to LoginScreen
+              Navigator.pop(context);
             },
           ),
         ),
@@ -144,7 +155,7 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_errorMessage != null) // Display error message if present
+              if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 15.0),
                   child: Text(
@@ -153,64 +164,82 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: const TextStyle(color: Colors.red, fontSize: 16),
                   ),
                 ),
+
+              // Name
               TextField(
-                controller: _nameController, // Link controller
+                controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Name',
                   labelStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 16),
+
+              // Email
               TextField(
-                controller: _emailController, // Link controller
-                keyboardType: TextInputType.emailAddress, // Suggest email keyboard
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email Address',
                   labelStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 16),
+
+              // Password
               TextField(
-                controller: _passwordController, // Link controller
+                controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'Create a password',
                   labelStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 16),
+
+              // Confirm Password
               TextField(
-                controller: _confirmPasswordController, // Link controller
+                controller: _confirmPasswordController,
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'Confirm password',
                   labelStyle: TextStyle(color: Colors.grey),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
                 style: const TextStyle(color: Colors.black),
               ),
               const SizedBox(height: 16),
+
+              // Terms and conditions
               Row(
                 children: [
                   Checkbox(
-                    value: _agreedToTerms, // Link to state variable
+                    value: _agreedToTerms,
                     onChanged: (val) {
                       setState(() {
-                        _agreedToTerms = val ?? false; // Update checkbox state
+                        _agreedToTerms = val ?? false;
                       });
                     },
                     activeColor: Colors.blue,
@@ -225,13 +254,14 @@ class _SignupScreenState extends State<SignupScreen> {
                           TextSpan(
                             text: 'Terms and Conditions',
                             style: TextStyle(color: Colors.blue),
-                            // TODO: Add onTap for legal links
                           ),
-                          TextSpan(text: ' and the ', style: TextStyle(color: Colors.white)),
+                          TextSpan(
+                            text: ' and the ',
+                            style: TextStyle(color: Colors.white),
+                          ),
                           TextSpan(
                             text: 'Privacy Policy',
                             style: TextStyle(color: Colors.blue),
-                            // TODO: Add onTap for legal links
                           ),
                         ],
                       ),
@@ -240,15 +270,21 @@ class _SignupScreenState extends State<SignupScreen> {
                 ],
               ),
               const SizedBox(height: 20),
+
+              // Submit Button
               _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.blue)) // Show loading indicator
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.blue),
+                    )
                   : ElevatedButton(
-                      onPressed: _signUp, // Call the _signUp method
+                      onPressed: _signUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text('Sign Up'),
                     ),

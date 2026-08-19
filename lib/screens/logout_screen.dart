@@ -1,28 +1,77 @@
+// lib/screens/logout_screen.dart
 import 'package:flutter/material.dart';
-import 'package:getsetgo/screens/login_screen.dart'; // <--- NEW: Import LoginScreen
-import 'package:getsetgo/widgets/animated_background.dart'; // <--- NEW: Import AnimatedBackground
+import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED: For Firebase Authentication
+import 'package:getsetgo/screens/login_screen.dart';
+import 'package:getsetgo/widgets/animated_background.dart';
 
-class LogoutScreen extends StatelessWidget {
+class LogoutScreen extends StatefulWidget { // Changed to StatefulWidget
   const LogoutScreen({Key? key}) : super(key: key);
 
   @override
+  State<LogoutScreen> createState() => _LogoutScreenState();
+}
+
+class _LogoutScreenState extends State<LogoutScreen> {
+  String _userName = 'User'; // Default name
+  String _userEmail = ''; // To display if name is not available
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Function to load the current user's data
+  void _loadUserData() {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _userName = user.displayName ?? user.email?.split('@')[0] ?? 'User'; // Use display name, or part of email, or 'User'
+        _userEmail = user.email ?? '';
+      });
+    }
+  }
+
+  // Function to handle the actual logout
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        // Navigate to LoginScreen and clear all previous routes
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      print('Error during logout: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error during logout: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedBackground( // <--- Wrap the Scaffold with AnimatedBackground
+    return AnimatedBackground(
       child: Scaffold(
-        backgroundColor: Colors.transparent, // <--- Make Scaffold background transparent
-        appBar: AppBar( // <--- Added AppBar for consistency and back navigation
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white), // <--- Adjust color
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () {
-              Navigator.pop(context); // Go back to the previous screen (e.g., Settings)
+              Navigator.pop(context);
             },
           ),
           title: const Text(
             'LOGOUT',
             style: TextStyle(
-              color: Colors.white, // <--- Adjust color
+              color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -36,23 +85,28 @@ class LogoutScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 60,
-                backgroundImage: const AssetImage('assets/images/avatar.png'),
+                backgroundImage: const AssetImage('assets/images/unisex_logos.png'),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Aravind',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white), // <--- Adjust text color
+              Text(
+                _userName, // Display dynamic user name
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
               ),
+              if (_userEmail.isNotEmpty) // Optionally display email if name is just part of email
+                Text(
+                  _userEmail,
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                ),
               const SizedBox(height: 8),
               const Text(
                 'Logout',
-                style: TextStyle(fontSize: 18, color: Colors.white70), // <--- Adjust text color
+                style: TextStyle(fontSize: 18, color: Colors.white70),
               ),
               const SizedBox(height: 24),
               const Text(
                 'Are you sure you want to logout from GetSetGo? You will need to login again next time.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.white), // <--- Adjust text color
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
               const SizedBox(height: 24),
               Row(
@@ -63,8 +117,8 @@ class LogoutScreen extends StatelessWidget {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.8), // <--- Adjust color
-                      foregroundColor: Colors.black, // <--- Adjust text color
+                      backgroundColor: Colors.white.withOpacity(0.8),
+                      foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
@@ -72,16 +126,9 @@ class LogoutScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      // <--- CORRECTED NAVIGATION: Navigate to LoginScreen
-                      Navigator.pushAndRemoveUntil( // Use pushAndRemoveUntil to clear the stack
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        (Route<dynamic> route) => false, // This predicate ensures all previous routes are removed
-                      );
-                    },
+                    onPressed: _logout, // Call the _logout function
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red, // Keep red for logout
+                      backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

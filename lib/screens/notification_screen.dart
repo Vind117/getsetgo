@@ -69,6 +69,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         );
       },
     );
+
     if (newTime != null) {
       setState(() {
         _dailyReminderTime = newTime;
@@ -94,7 +95,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
           title: const Text(
             'Notification',
             style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              fontSize: 20, 
+              fontWeight: FontWeight.bold, 
+              color: Colors.white,
+            ),
           ),
           centerTitle: true,
         ),
@@ -117,6 +121,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     });
                   },
                 ),
+
                 // Sound Notification Toggle
                 _buildNotificationToggle(
                   'Sound Notification',
@@ -128,9 +133,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     });
                   },
                 ),
+
                 // Daily Reminder Time (with time picker)
                 _buildDailyReminderTimeTile(),
-                // Do Not Disturb(DND) Toggle
+
+                // Do Not Disturb (DND) Toggle
                 _buildNotificationToggle(
                   'Do Not Disturb(DND)',
                   _doNotDisturb,
@@ -141,6 +148,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     });
                   },
                 ),
+
+                // Now shows the message if any toggle is on
+                if (_showNotification || _soundNotification || _dailyReminderEnabled || _doNotDisturb)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 20.0),
+                    child: Text(
+                      'Features coming soon!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -149,7 +170,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // A reusable widget to build a notification toggle list tile.
+  // A reusable widget to build a notification toggle list tile
   Widget _buildNotificationToggle(String title, bool value, ValueChanged<bool> onChanged) {
     return Column(
       children: [
@@ -171,7 +192,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // A dedicated widget for the daily reminder time setting.
+  // A dedicated widget for the daily reminder time setting
   Widget _buildDailyReminderTimeTile() {
     return Column(
       children: [
@@ -182,9 +203,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
           subtitle: _dailyReminderEnabled
               ? Text(
-            'Set at ${_dailyReminderTime.format(context)}',
-            style: const TextStyle(color: Colors.white70),
-          )
+                  'Set at ${_dailyReminderTime.format(context)}',
+                  style: const TextStyle(color: Colors.white70),
+                )
               : null,
           trailing: Switch(
             value: _dailyReminderEnabled,

@@ -1,4 +1,5 @@
 // lib/screens/habit_setting_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:getsetgo/screens/create_new_habit_screen.dart';
@@ -36,21 +37,30 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
     _selectedDay = _focusedDay;
     _habitService = HabitService();
     _notificationService = NotificationService(); // Initialize NotificationService
+
     debugPrint('DEBUG HABIT SETTING: Initialized _selectedDay: $_selectedDay');
 
-    // If a habitId is passed, you might want to automatically select that habit
-    // or navigate to its edit screen. For now, we just print.
-    if (widget.habitId != null) {
-      debugPrint('DEBUG HABIT SETTING: Launched with habitId: ${widget.habitId}');
-      // You could add logic here to fetch the specific habit and display its details
-      // or navigate to EditHabitScreen for it.
-    }
+    // NEW LOGIC: If a habitId is passed from a notification, navigate to EditHabitScreen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.habitId != null && currentUser != null) {
+        _habitService.getHabitById(widget.habitId!, currentUser!.uid).then((habit) {
+          if (habit != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => EditHabitScreen(habitToEdit: habit)),
+            );
+          } else {
+            debugPrint('DEBUG HABIT SETTING: Habit with ID ${widget.habitId} not found.');
+          }
+        }).catchError((error) {
+          debugPrint('DEBUG HABIT SETTING: Error fetching habit for navigation: $error');
+        });
+      }
+    });
   }
 
   bool _isSameDay(DateTime? a, DateTime? b) {
-    if (a == null || b == null) {
-      return false;
-    }
+    if (a == null || b == null) return false;
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
@@ -71,17 +81,17 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
             ),
           ),
           centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LogoutScreen()),
-                );
-              },
-            ),
-          ],
+          // actions: [
+          //   IconButton(
+          //     icon: const Icon(Icons.logout, color: Colors.white),
+          //     onPressed: () {
+          //       Navigator.push(
+          //         context,
+          //         MaterialPageRoute(builder: (context) => const LogoutScreen()),
+          //       );
+          //     },
+          //   ),
+          // ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -93,9 +103,7 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                 lastDay: DateTime.utc(2030, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
-                selectedDayPredicate: (day) {
-                  return _isSameDay(_selectedDay, day);
-                },
+                selectedDayPredicate: (day) => _isSameDay(_selectedDay, day),
                 onDaySelected: (selectedDay, focusedDay) {
                   if (!mounted) return;
                   setState(() {
@@ -121,29 +129,47 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                   outsideDaysVisible: false,
                   defaultTextStyle: const TextStyle(color: Colors.white, fontSize: 16.0),
                   weekendTextStyle: const TextStyle(color: Colors.white70, fontSize: 16.0),
-                  todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16.0),
+                  todayTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.0,
+                  ),
                   todayDecoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
-                  selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16.0),
+                  selectedTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.0,
+                  ),
                   selectedDecoration: const BoxDecoration(
                     color: Colors.blue,
                     shape: BoxShape.circle,
                   ),
                   rowDecoration: const BoxDecoration(color: Colors.transparent),
-                  defaultDecoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                  ),
+                  defaultDecoration: const BoxDecoration(shape: BoxShape.circle),
                 ),
                 daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.0),
-                  weekendStyle: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14.0),
+                  weekdayStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.0,
+                  ),
+                  weekendStyle: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.0,
+                  ),
                 ),
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(color: Colors.white, fontSize: 18.0, fontWeight: FontWeight.bold),
+                  titleTextStyle: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                  ),
                   leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white),
                   rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white),
                   formatButtonDecoration: BoxDecoration(
@@ -155,6 +181,7 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
               ),
               const SizedBox(height: 30),
 
+              // New Habit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -186,6 +213,7 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
               ),
               const SizedBox(height: 20),
 
+              // Habit List
               Expanded(
                 child: currentUser == null
                     ? const Center(
@@ -198,17 +226,27 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                         stream: _habitService.getHabitsStream(),
                         builder: (context, snapshot) {
                           debugPrint('DEBUG HABIT SETTING: StreamBuilder building...');
+
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             debugPrint('DEBUG HABIT SETTING: Connection state: Waiting');
-                            return const Center(child: CircularProgressIndicator(color: Colors.blue));
+                            return const Center(
+                              child: CircularProgressIndicator(color: Colors.blue),
+                            );
                           }
+
                           if (snapshot.hasError) {
                             debugPrint('DEBUG HABIT SETTING: Snapshot has error: ${snapshot.error}');
                             return Center(
-                                child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                              child: Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            );
                           }
+
                           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            debugPrint('DEBUG HABIT SETTING: No data or empty docs. hasData: ${snapshot.hasData}, data.isEmpty: ${snapshot.data?.isEmpty}');
+                            debugPrint(
+                                'DEBUG HABIT SETTING: No data or empty docs. hasData: ${snapshot.hasData}, data.isEmpty: ${snapshot.data?.isEmpty}');
                             return const Center(
                               child: Text(
                                 'No habits found. Click "New Habit" to add one!',
@@ -219,27 +257,36 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                           }
 
                           debugPrint('DEBUG HABIT SETTING: Total habits fetched: ${snapshot.data!.length}');
+                          debugPrint('DEBUG HABIT SETTING: Filtering habits for selected day: $_selectedDay');
 
                           // Filter habits for the selected day
-                          debugPrint('DEBUG HABIT SETTING: Filtering habits for selected day: $_selectedDay');
                           final habitsForSelectedDay = snapshot.data!.where((habit) {
                             if (_selectedDay == null) {
-                              debugPrint('DEBUG HABIT SETTING: _selectedDay is null, skipping habit ${habit.name}.');
+                              debugPrint(
+                                  'DEBUG HABIT SETTING: _selectedDay is null, skipping habit ${habit.name}.');
                               return false;
                             }
 
-                            final selectedDayDate = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
-                            final habitStartDate = DateTime(habit.startDate.year, habit.startDate.month, habit.startDate.day);
-                            final habitEndDate = DateTime(habit.endDate.year, habit.endDate.month, habit.endDate.day);
+                            final selectedDayDate =
+                                DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+                            final habitStartDate =
+                                DateTime(habit.startDate.year, habit.startDate.month, habit.startDate.day);
+                            final habitEndDate =
+                                DateTime(habit.endDate.year, habit.endDate.month, habit.endDate.day);
 
-                            final bool matches = (selectedDayDate.isAfter(habitStartDate.subtract(const Duration(days: 1))) || _isSameDay(selectedDayDate, habitStartDate)) &&
-                                                 (selectedDayDate.isBefore(habitEndDate.add(const Duration(days: 1))) || _isSameDay(selectedDayDate, habitEndDate));
+                            final bool matches =
+                                (selectedDayDate.isAfter(habitStartDate.subtract(const Duration(days: 1))) ||
+                                        _isSameDay(selectedDayDate, habitStartDate)) &&
+                                    (selectedDayDate.isBefore(habitEndDate.add(const Duration(days: 1))) ||
+                                        _isSameDay(selectedDayDate, habitEndDate));
 
-                            debugPrint('DEBUG HABIT SETTING: Habit: ${habit.name}, SelectedDay: $selectedDayDate, StartDate: $habitStartDate, EndDate: $habitEndDate, Matches: $matches');
+                            debugPrint(
+                                'DEBUG HABIT SETTING: Habit: ${habit.name}, SelectedDay: $selectedDayDate, StartDate: $habitStartDate, EndDate: $habitEndDate, Matches: $matches');
                             return matches;
                           }).toList();
 
-                          debugPrint('DEBUG HABIT SETTING: Habits found for selected day: ${habitsForSelectedDay.length}');
+                          debugPrint(
+                              'DEBUG HABIT SETTING: Habits found for selected day: ${habitsForSelectedDay.length}');
 
                           if (habitsForSelectedDay.isEmpty) {
                             return Center(
@@ -291,6 +338,7 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Habit Title
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -308,10 +356,14 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
             ],
           ),
           const SizedBox(height: 8),
+
+          // Habit Goal
           Text(
             'Goal: ${habit.duration}',
             style: const TextStyle(fontSize: 16, color: Colors.white70),
           ),
+
+          // Habit Category
           if (habit.category != null && habit.category!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
@@ -319,11 +371,16 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
               style: const TextStyle(fontSize: 14, color: Colors.white60),
             ),
           ],
+
           const SizedBox(height: 4),
+
+          // Habit Duration
           Text(
             'Duration: ${DateFormat('MMM d, yyyy').format(habit.startDate)} - ${DateFormat('MMM d, yyyy').format(habit.endDate)}',
             style: const TextStyle(fontSize: 14, color: Colors.white60),
           ),
+
+          // Daily Reminder
           if (habit.reminderTime != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -331,6 +388,8 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
               style: const TextStyle(fontSize: 14, color: Colors.white60),
             ),
           ],
+
+          // Notes
           if (habit.notes != null && habit.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -340,11 +399,14 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+
+          // Action Buttons (Edit / Delete)
           Align(
             alignment: Alignment.bottomRight,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Edit Button
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
                   onPressed: () async {
@@ -356,6 +418,8 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                     );
                   },
                 ),
+
+                // Delete Button
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
                   onPressed: () async {
@@ -365,7 +429,10 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                         return AlertDialog(
                           backgroundColor: Colors.blueGrey[900],
                           title: const Text('Delete Habit', style: TextStyle(color: Colors.white)),
-                          content: Text('Are you sure you want to delete "${habit.name}"?', style: const TextStyle(color: Colors.white70)),
+                          content: Text(
+                            'Are you sure you want to delete "${habit.name}"?',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
                           actions: <Widget>[
                             TextButton(
                               child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
@@ -388,7 +455,6 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                       try {
                         if (habit.id != null && habit.id!.isNotEmpty) {
                           await _habitService.deleteHabit(habit.id!);
-                          // CORRECTED: Call cancelNotification with the correct string ID
                           await _notificationService.cancelNotification('daily_${habit.id!}');
 
                           if (mounted) {
@@ -397,7 +463,8 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                             );
                           }
                         } else {
-                          debugPrint("ERROR HABIT SETTING: Attempted to delete habit with null or empty ID.");
+                          debugPrint(
+                              "ERROR HABIT SETTING: Attempted to delete habit with null or empty ID.");
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Error: Habit ID is missing.')),
@@ -405,7 +472,8 @@ class _HabitSettingScreenState extends State<HabitSettingScreen> {
                           }
                         }
                       } on Exception catch (e) {
-                        debugPrint("ERROR HABIT SETTING: Failed to delete habit or cancel notifications: $e");
+                        debugPrint(
+                            "ERROR HABIT SETTING: Failed to delete habit or cancel notifications: $e");
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Failed to delete habit: $e')),

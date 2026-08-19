@@ -1,3 +1,5 @@
+// lib/screens/ai_assistant_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -5,14 +7,13 @@ import 'package:getsetgo/screens/logout_screen.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:video_player/video_player.dart'; // Import video_player
+import 'package:video_player/video_player.dart';
 
-// ChatMessage class remains the same for displaying messages
 class ChatMessage {
   final String text;
   final bool isUserMessage;
-  // Added a UniqueKey for better ListView item management with animations
   final Key key;
+
   ChatMessage({required this.text, required this.isUserMessage}) : key = UniqueKey();
 }
 
@@ -25,13 +26,12 @@ class AssistantScreen extends StatefulWidget {
 
 class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
-  // Changed to add messages at the end, and display them from bottom to top
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
 
   late FlutterTts flutterTts;
   late SpeechToText _speechToText;
-  late VideoPlayerController _videoController; // Declare VideoPlayerController
+  late VideoPlayerController _videoController;
 
   bool _isListening = false;
   String _lastWords = '';
@@ -46,22 +46,11 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     super.initState();
     _initTts();
     _initSpeechToText();
-    _initVideoBackground(); // Initialize video background
+    _initVideoBackground();
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    // Add initial greeting message
-    _messages.add(ChatMessage(
-      text: "Hi there! 👋 How can I help you with your habits today? Do you have any questions about using GetSetGo, setting up new habits, or anything else related to your well-being journey?",
-      isUserMessage: false,
-    ));
-    _messages.add(ChatMessage(
-      text: "Okay! To help me understand how I can best assist you, could you tell me what you'd like to know or what you're looking for help with? For example, are you:\n\n* Trying to create a new habit?\n* Having trouble sticking to a habit?\n* Looking for ideas for healthy",
-      isUserMessage: false,
-    ));
-    // Simulate user sending "hi" from image
-    _messages.add(ChatMessage(text: "hi", isUserMessage: true));
   }
 
   @override
@@ -71,11 +60,10 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     _speechToText.stop();
     _scrollController.dispose();
     _animationController.dispose();
-    _videoController.dispose(); // Dispose video controller
+    _videoController.dispose();
     super.dispose();
   }
 
-  // --- TTS Initialization ---
   void _initTts() {
     flutterTts = FlutterTts();
     flutterTts.setLanguage("en-US");
@@ -90,7 +78,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     });
   }
 
-  // --- STT Initialization ---
   void _initSpeechToText() async {
     _speechToText = SpeechToText();
     bool available = await _speechToText.initialize(
@@ -107,17 +94,15 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     }
   }
 
-  // --- Video Background Initialization ---
   void _initVideoBackground() async {
-    _videoController = VideoPlayerController.asset('assets/videos/bg_animation.mp4'); // Path to your video
+    _videoController = VideoPlayerController.asset('assets/videos/bg_animation.mp4');
     await _videoController.initialize();
-    _videoController.setLooping(true); // Loop the video
-    _videoController.setVolume(0.0); // Mute the video
+    _videoController.setLooping(true);
+    _videoController.setVolume(0.0);
     _videoController.play();
-    setState(() {}); // Rebuild to show the video player
+    setState(() {});
   }
 
-  // --- Handle Text Input and Send Message ---
   void _handleSubmitted(String text) {
     if (text.isEmpty) return;
     _textController.clear();
@@ -125,7 +110,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
       if (_isShowingListeningIndicator) {
         _isShowingListeningIndicator = false;
       }
-      // Add message to the end of the list
       _messages.add(ChatMessage(text: text, isUserMessage: true));
       _isLoadingResponse = true;
       _enableVoiceResponse = false;
@@ -134,7 +118,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     _getAIResponse(text);
   }
 
-  // --- Voice Input Toggle ---
   void _toggleListening() async {
     if (_isListening) {
       _speechToText.stop();
@@ -178,7 +161,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
             _enableVoiceResponse = false;
             _animationController.reverse();
             _isShowingListeningIndicator = false;
-            // Add error message to the chat
             _messages.add(ChatMessage(text: 'Voice input error: ${errorNotification.errorMsg.split(':')[0]}. Please try again.', isUserMessage: false));
             _scrollToBottom();
           });
@@ -210,27 +192,27 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     }
   }
 
-  // --- Get AI Response from Gemini API ---
   Future<void> _getAIResponse(String userMessage) async {
     List<Map<String, dynamic>> apiChatContents = [];
 
-    // Add system instructions
     apiChatContents.add({
       "role": "user",
-      "parts": [{"text": "You are a helpful AI assistant for a habit tracker application called 'GetSetGo'. Your goal is to assist users with questions related to habit tracking, health and fitness habits, creating habit plans, and general well-being advice. Be encouraging and provide actionable advice. If a user asks something unrelated, gently steer them back to habits or health topics."}]
+      "parts": [
+        {
+          "text": "You are a helpful AI assistant for a habit tracker application called 'GetSetGo'. Your goal is to assist users with questions related to habit tracking, health and fitness habits, creating habit plans, and general well-being advice. Be encouraging and provide actionable advice. If a user asks something unrelated, gently steer them back to habits or health topics."
+        }
+      ]
     });
     apiChatContents.add({"role": "model", "parts": [{"text": "Hello! How can I assist you today regarding your habits or health?"}]});
 
-    // Populate chat history for Gemini API. _messages already contains the new user message.
-    // We need to send them in chronological order for the API.
     for (var msg in _messages.where((msg) => !msg.text.startsWith('Listening'))) {
       apiChatContents.add({
-          "role": msg.isUserMessage ? "user" : "model",
-          "parts": [{"text": msg.text}]
+        "role": msg.isUserMessage ? "user" : "model",
+        "parts": [{"text": msg.text}]
       });
     }
 
-    final String apiKey = "AIzaSyDsWC-KmRBNuAmYwbajjMGlNz7IaM2zr14"; // Ensure this is a valid and secure API key
+    final String apiKey = "AIzaSyDsWC-KmRBNuAmYwbajjMGlNz7IaM2zr14";
     final String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey";
 
     try {
@@ -256,9 +238,9 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
         }
 
         setState(() {
-          // Add AI message to the end of the list
           _messages.add(ChatMessage(text: aiResponseText, isUserMessage: false));
           _isLoadingResponse = false;
+          _enableVoiceResponse = false;
         });
         _scrollToBottom();
         if (_enableVoiceResponse) {
@@ -267,7 +249,7 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
       } else {
         String errorMsg = 'Error getting response: HTTP ${response.statusCode}';
         if (response.statusCode == 400) {
-            errorMsg += '. (Bad Request: Check request format, especially chat history roles. Response body: ${response.body})';
+          errorMsg += '. (Bad Request: Check request format, especially chat history roles. Response body: ${response.body})';
         } else if (response.statusCode == 403) {
           errorMsg += '. (Forbidden: API key might be invalid or lacking permissions, or Gemini API is not enabled for your project.)';
         } else if (response.statusCode == 429) {
@@ -275,7 +257,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
         }
         print('API Error: ${response.statusCode} - ${response.body}');
         setState(() {
-          // Add error message to the end of the list
           _messages.add(ChatMessage(text: errorMsg, isUserMessage: false));
           _isLoadingResponse = false;
         });
@@ -287,7 +268,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     } catch (e) {
       print('Network/Parsing Error: $e');
       setState(() {
-        // Add error message to the end of the list
         _messages.add(ChatMessage(text: 'Error connecting to AI. Please check your internet connection.', isUserMessage: false));
         _isLoadingResponse = false;
       });
@@ -298,19 +278,17 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
     }
   }
 
-  // --- Text-to-Speech Function ---
   Future<void> _speak(String text) async {
     if (text.isNotEmpty) {
       await flutterTts.speak(text);
     }
   }
 
-  // --- Scroll to the bottom of the chat list ---
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent, // Scroll to the end
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -321,9 +299,8 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack( // Use a Stack to layer the video and chat UI
+      body: Stack(
         children: [
-          // Video background layer
           SizedBox.expand(
             child: FittedBox(
               fit: BoxFit.cover,
@@ -332,11 +309,10 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
                 height: _videoController.value.isInitialized ? _videoController.value.size.height : 0,
                 child: _videoController.value.isInitialized
                     ? VideoPlayer(_videoController)
-                    : Container(color: Colors.black), // Fallback for when video is not initialized
+                    : Container(color: Colors.black),
               ),
             ),
           ),
-          // Original Column content for the chat UI
           Column(
             children: [
               AppBar(
@@ -358,27 +334,13 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
                   ),
                 ),
                 centerTitle: true,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white, size: 28),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LogoutScreen()),
-                      );
-                    },
-                  ),
-                ],
               ),
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  // Removed `reverse: true`
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
-                    // Removed SlideTransition here for simplicity and to ensure visibility
-                    // If you want animation per message, consider AnimatedList or more complex state.
                     return _buildMessage(_messages[index]);
                   },
                 ),
@@ -392,7 +354,6 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                   ),
                 ),
-              // Place listening indicator above the input field
               if (_isShowingListeningIndicator)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -513,13 +474,15 @@ class _AssistantScreenState extends State<AssistantScreen> with SingleTickerProv
                     style: TextStyle(
                       color: textColor,
                       fontSize: 16.0,
-                      shadows: message.isUserMessage ? [ // Add shadow only for user messages
-                        Shadow(
-                          blurRadius: 2.0,
-                          color: Colors.black.withOpacity(0.5), // Subtle black shadow for white text
-                          offset: const Offset(1.0, 1.0),
-                        ),
-                      ] : null, // No shadow for AI messages
+                      shadows: message.isUserMessage
+                          ? [
+                              Shadow(
+                                blurRadius: 2.0,
+                                color: Colors.black.withOpacity(0.5),
+                                offset: const Offset(1.0, 1.0),
+                              ),
+                            ]
+                          : null,
                     ),
                   ),
                 ),

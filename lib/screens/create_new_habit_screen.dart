@@ -1,4 +1,5 @@
 // lib/screens/create_new_habit_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:getsetgo/widgets/animated_background.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +19,7 @@ class CreateNewHabitScreen extends StatefulWidget {
 
 class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final TextEditingController _habitNameController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
@@ -30,12 +32,20 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
   TimeOfDay? _selectedReminderTime; // Stored as TimeOfDay
 
   String? _selectedCategory;
-  final List<String> _categories = ['Health', 'Learning', 'Productivity', 'Self-Care', 'Social', 'Other'];
+  final List<String> _categories = [
+    'Health',
+    'Learning',
+    'Productivity',
+    'Self-Care',
+    'Social',
+    'Other',
+  ];
 
   bool _isLoading = false;
 
   final HabitService _habitService = HabitService();
-  final NotificationService _notificationService = NotificationService(); // Instantiate NotificationService
+  final NotificationService _notificationService =
+      NotificationService(); // Instantiate NotificationService
 
   @override
   void dispose() {
@@ -69,8 +79,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
         );
       },
     );
+
     if (picked != null) {
-      // Check if mounted before calling setState
       if (!mounted) return;
       setState(() {
         if (isStartDate) {
@@ -107,8 +117,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
         );
       },
     );
+
     if (picked != null && picked != _selectedReminderTime) {
-      // Check if mounted before calling setState
       if (!mounted) return;
       setState(() {
         _selectedReminderTime = picked;
@@ -119,7 +129,6 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
 
   Future<void> _submitHabit() async {
     if (_formKey.currentState!.validate()) {
-      // Check if mounted before calling setState
       if (!mounted) return;
       setState(() {
         _isLoading = true;
@@ -127,38 +136,34 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        // Check if mounted before showing SnackBar
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('You must be logged in to create a habit.')),
         );
-        // Check if mounted before calling setState
         if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
-        print('DEBUG: User is NOT logged in. Cannot save habit (from create_new_habit_screen).');
+        print(
+            'DEBUG: User is NOT logged in. Cannot save habit (from create_new_habit_screen).');
         return;
       }
 
       // --- START: Exact Alarm Permission Request ---
-      // Request SCHEDULE_EXACT_ALARM permission for Android 12+ for exact notifications
       var status = await Permission.scheduleExactAlarm.status;
       print('DEBUG: Exact alarm permission status: $status');
 
       if (status.isDenied) {
-        // If denied, request it from the user
         status = await Permission.scheduleExactAlarm.request();
         print('DEBUG: Exact alarm permission status after request: $status');
       }
 
       if (status.isPermanentlyDenied) {
-        // If permanently denied, guide the user to app settings
-        // Check if mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Exact alarm permission is permanently denied. Please enable it in app settings.'),
+              content: const Text(
+                  'Exact alarm permission is permanently denied. Please enable it in app settings.'),
               action: SnackBarAction(
                 label: 'SETTINGS',
                 onPressed: () {
@@ -168,39 +173,36 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
             ),
           );
         }
-        // Check if mounted before calling setState
         if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
-        print('DEBUG: Exact alarm permission permanently denied. Cannot schedule notifications.');
+        print(
+            'DEBUG: Exact alarm permission permanently denied. Cannot schedule notifications.');
         return; // Stop here if permission is not granted
       }
 
       if (!status.isGranted) {
-        // If still not granted after request (e.g., user denied it this time)
-        // Check if mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Exact alarm permission not granted. Notifications may not work.')),
+            const SnackBar(
+                content: Text('Exact alarm permission not granted. Notifications may not work.')),
           );
         }
-        print('DEBUG: Exact alarm permission not granted. Notifications will not be scheduled.');
+        print(
+            'DEBUG: Exact alarm permission not granted. Notifications will not be scheduled.');
         // We will still proceed with habit creation, but notifications won't work.
-        // The goal is to get the permission granted.
       }
       // --- END: Exact Alarm Permission Request ---
 
-
-      print('DEBUG: Current Authenticated User UID (from create_new_habit_screen): ${user.uid}');
+      print(
+          'DEBUG: Current Authenticated User UID (from create_new_habit_screen): ${user.uid}');
 
       if (_selectedStartDate == null || _selectedEndDate == null) {
-        // Check if mounted before showing SnackBar
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select both start and end dates.')),
         );
-        // Check if mounted before calling setState
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -208,13 +210,12 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
         print('DEBUG: Start or end date is null.');
         return;
       }
+
       if (_selectedEndDate!.isBefore(_selectedStartDate!)) {
-        // Check if mounted before showing SnackBar
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('End date cannot be before start date.')),
         );
-        // Check if mounted before calling setState
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -224,12 +225,10 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
       }
 
       if (_selectedReminderTime == null) {
-        // Check if mounted before showing SnackBar
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select a reminder time for the habit.')),
         );
-        // Check if mounted before calling setState
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -246,7 +245,9 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
           endDate: _selectedEndDate!,
           duration: _durationController.text.trim(),
           reminderTime: _selectedReminderTime, // Use the TimeOfDay object
-          notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+          notes: _notesController.text.trim().isNotEmpty
+              ? _notesController.text.trim()
+              : null,
           category: _selectedCategory,
         );
 
@@ -262,7 +263,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
 
         final String habitFirestoreId = await _habitService.addHabit(newHabit);
 
-        print('DEBUG: Habit saved successfully to Firestore with ID: $habitFirestoreId');
+        print(
+            'DEBUG: Habit saved successfully to Firestore with ID: $habitFirestoreId');
 
         // Only attempt to schedule notifications if exact alarm permission is granted
         if (status.isGranted) {
@@ -278,31 +280,33 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
 
             if (scheduledDateTime.isAfter(DateTime.now())) {
               await _notificationService.scheduleHabitNotification(
-                notificationId: '$habitFirestoreId-${scheduledDateTime.year}-${scheduledDateTime.month}-${scheduledDateTime.day}',
+                notificationId:
+                    '$habitFirestoreId-${scheduledDateTime.year}-${scheduledDateTime.month}-${scheduledDateTime.day}',
                 habitName: newHabit.name,
                 scheduledTime: scheduledDateTime,
                 habitFirestoreId: habitFirestoreId,
               );
-              print('DEBUG: Scheduled notification for ${newHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
+              print(
+                  'DEBUG: Scheduled notification for ${newHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
             } else {
-              print('DEBUG: Skipping past notification for ${newHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
+              print(
+                  'DEBUG: Skipping past notification for ${newHabit.name} on ${DateFormat('dd/MM/yyyy HH:mm').format(scheduledDateTime)}');
             }
           }
         } else {
-          print('DEBUG: Skipping notification scheduling due to missing exact alarm permission.');
+          print(
+              'DEBUG: Skipping notification scheduling due to missing exact alarm permission.');
         }
 
-
-        // Check if mounted before showing SnackBar and popping Navigator
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Habit created and notifications scheduled successfully!')),
+            const SnackBar(
+                content: Text('Habit created and notifications scheduled successfully!')),
           );
           Navigator.pop(context);
         }
         print('DEBUG: _submitHabit process finished.');
       } on FirebaseException catch (e) {
-        // Check if mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error creating habit: ${e.message}')),
@@ -310,7 +314,6 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
         }
         print('DEBUG: Firestore Error: ${e.code} - ${e.message}');
       } catch (e) {
-        // Check if mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('An unexpected error occurred: ${e.toString()}')),
@@ -318,7 +321,6 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
         }
         print('DEBUG: General Error: ${e.toString()}');
       } finally {
-        // Check if mounted before calling setState
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -423,11 +425,13 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
                   items: _categories.map((String category) {
                     return DropdownMenuItem<String>(
                       value: category,
-                      child: Text(category, style: const TextStyle(color: Colors.black)),
+                      child: Text(
+                        category,
+                        style: const TextStyle(color: Colors.black),
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
-                    // Check if mounted before calling setState
                     if (!mounted) return;
                     setState(() {
                       _selectedCategory = newValue;
@@ -505,7 +509,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           validator: validator,
         ),
@@ -547,7 +552,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           validator: validator,
         ),
@@ -588,7 +594,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
         ),
       ],
@@ -627,7 +634,8 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           dropdownColor: Colors.white,
           icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
@@ -637,3 +645,4 @@ class _CreateNewHabitScreenState extends State<CreateNewHabitScreen> {
     );
   }
 }
+

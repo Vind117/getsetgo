@@ -1,12 +1,15 @@
 // lib/screens/settings_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:getsetgo/screens/logout_screen.dart'; // Ensure this import is correct
-import 'package:getsetgo/screens/edit_profile_screen.dart'; // Ensure this import is correct
-import 'package:getsetgo/screens/privacy_and_security_screen.dart'; // Ensure this import is correct
-import 'package:getsetgo/screens/notification_screen.dart'; // Ensure this import is correct
-import 'package:getsetgo/screens/about_us_screen.dart'; // Ensure this import is correct
-import 'package:getsetgo/screens/help_and_support_screen.dart'; // Ensure this import is correct
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Screens
+import 'package:getsetgo/screens/logout_screen.dart';
+import 'package:getsetgo/screens/edit_profile_screen.dart';
+import 'package:getsetgo/screens/privacy_and_security_screen.dart';
+import 'package:getsetgo/screens/notification_screen.dart';
+import 'package:getsetgo/screens/about_us_screen.dart';
+import 'package:getsetgo/screens/help_and_support_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -17,15 +20,15 @@ class SettingsScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     // Determine the user's display name
-    String displayName = user?.displayName ?? 'User'; // Use display name if available, otherwise "User"
+    String displayName = user?.displayName ?? 'User';
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Important for AnimatedBackground
-      appBar: AppBar( // AppBar for Settings screen
-        backgroundColor: Colors.transparent, // Transparent AppBar
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'SETTINGS', // Screen title
+          'SETTINGS',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -35,11 +38,13 @@ class SettingsScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white), // Logout icon
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const LogoutScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const LogoutScreen(),
+                ),
               );
             },
           ),
@@ -54,22 +59,25 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 children: [
                   CircleAvatar(
-                    // Use user's photoURL if available, otherwise fallback to asset
                     backgroundImage: user?.photoURL != null
                         ? NetworkImage(user!.photoURL!)
-                        : const AssetImage('assets/images/avatar.png') as ImageProvider,
+                        : const AssetImage('assets/images/unisex_logos.png')
+                            as ImageProvider,
                     radius: 50,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    displayName, // Display the user's name
+                    displayName,
                     style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                  // Removed the Text widget for '@aravind1107'
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
 
             // Settings options
@@ -80,7 +88,9 @@ class SettingsScreen extends StatelessWidget {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
                 );
               },
             ),
@@ -91,7 +101,9 @@ class SettingsScreen extends StatelessWidget {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PrivacyAndSecurityScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacyAndSecurityScreen(),
+                  ),
                 );
               },
             ),
@@ -102,7 +114,9 @@ class SettingsScreen extends StatelessWidget {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
                 );
               },
             ),
@@ -113,7 +127,9 @@ class SettingsScreen extends StatelessWidget {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const AboutUsScreen(),
+                  ),
                 );
               },
             ),
@@ -124,18 +140,26 @@ class SettingsScreen extends StatelessWidget {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const HelpAndSupportScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const HelpAndSupportScreen(),
+                  ),
                 );
               },
             ),
-            const SizedBox(height: 20), // Padding at the bottom
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsOption(BuildContext context, String title, IconData trailingIcon, VoidCallback onPressed) {
+  Widget _buildSettingsOption(
+    BuildContext context,
+    String title,
+    IconData trailingIcon,
+    VoidCallback onPressed,
+  ) {
     return Column(
       children: [
         ListTile(
@@ -145,10 +169,13 @@ class SettingsScreen extends StatelessWidget {
           ),
           trailing: Icon(trailingIcon, color: Colors.white),
           onTap: onPressed,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20.0,
+            vertical: 8.0,
+          ),
         ),
-        // No Divider here as per the image
       ],
     );
   }
 }
+

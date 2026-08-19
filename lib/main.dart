@@ -3,19 +3,114 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:getsetgo/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Keep this import
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:getsetgo/screens/login_screen.dart';
 import 'package:getsetgo/screens/main_app_screen.dart';
 import 'package:getsetgo/services/notification_service.dart'; // Import your notification service
-import 'package:getsetgo/services/habit_service.dart';
-import 'package:getsetgo/models/habit.dart';
+import 'package:getsetgo/services/habit_service.dart'; // Import HabitService
+import 'package:getsetgo/models/habit_entry.dart'; // Import HabitEntry and HabitStatus
+import 'package:getsetgo/models/habit.dart'; // NEW: Import Habit model
+import 'package:getsetgo/screens/habit_setting_screen.dart'; // NEW: Import HabitSettingScreen
 import 'dart:async'; // Import for StreamSubscription
+import 'dart:convert'; // Import for json decoding
 
 // Define a global navigator key here so it can be accessed by the NotificationService
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// Removed the duplicate `notificationTapBackground` function from here.
-// It should only exist in notification_service.dart as a top-level function.
+// Define global instances of services that might be needed by background handlers
+// These need to be initialized in main() before use in top-level functions
+late NotificationService globalNotificationService;
+late HabitService globalHabitService;
+
+
+// Top-level function to handle notification responses (foreground, background, and terminated)
+// This function must be a top-level function or static method.
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) async {
+  debugPrint('notificationTapBackground: payload=${notificationResponse.payload}, actionId=${notificationResponse.actionId}');
+
+  // Ensure services are initialized if this is called from a terminated state
+  // This is a simplified check; a more robust solution might involve a dedicated
+  // background entry point for Flutter plugins.
+  if (!Firebase.apps.isNotEmpty) { // FIXED: Corrected Firebase.apps.isNotEmpty syntax
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+  globalHabitService = HabitService(); // Re-initialize if needed
+  globalNotificationService = NotificationService(); // Re-initialize if needed
+
+
+  if (notificationResponse.actionId != null) {
+    // This is an action button tap (e.g., 'YES_ACTION', 'NO_ACTION')
+    // The data for actions is now in notificationResponse.data
+    try {
+      // Use notificationResponse.data for action-specific data
+      final Map<String, dynamic>? actionData = notificationResponse.data;
+      if (actionData != null) {
+        final String habitId = actionData['habitId'];
+        final String statusString = actionData['status']; // 'completed' or 'skipped'
+
+        HabitStatus status;
+        if (statusString == 'completed') {
+          status = HabitStatus.completed;
+        } else if (statusString == 'skipped') {
+          status = HabitStatus.skipped;
+        } else {
+          status = HabitStatus.pending; // Default or handle unknown status
+        }
+
+        debugPrint('Action received: Habit ID: $habitId, Status: $status');
+
+        // Get the current user. This is crucial for Firestore operations.
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          // Update habit entry in Firestore
+          final newEntry = HabitEntry(
+            habitId: habitId,
+            userId: user.uid,
+            date: DateTime.now(), // Log for today
+            status: status,
+            interactionTime: DateTime.now(),
+            notes: 'Logged via notification action: $statusString',
+          );
+          await globalHabitService.addOrUpdateHabitEntry(newEntry);
+          debugPrint('Habit entry updated in Firestore via notification action.');
+        } else {
+          debugPrint('No user logged in for background habit update. Cannot update Firestore.');
+        }
+
+        // If the app is in the foreground, you can show a SnackBar
+        // This part will only execute if the app is already running and the context is available
+        if (navigatorKey.currentState?.context != null) {
+          ScaffoldMessenger.of(navigatorKey.currentState!.context).showSnackBar(
+            SnackBar(content: Text('Habit "$habitId" marked as $statusString!')),
+          );
+        }
+      } else {
+        debugPrint('Action data is null for actionId: ${notificationResponse.actionId}');
+      }
+    } catch (e) {
+      debugPrint('Error processing action payload in background handler: $e');
+    }
+  } else if (notificationResponse.payload != null && notificationResponse.payload!.startsWith('habit_')) {
+    // This is a direct tap on the notification itself (not an action button)
+    final String? habitId = notificationResponse.payload?.split('_').last;
+    if (habitId != null) {
+      // Use WidgetsBinding.instance.addPostFrameCallback to ensure UI is ready for navigation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (navigatorKey.currentState != null) {
+          navigatorKey.currentState!.push(
+            MaterialPageRoute(
+              builder: (context) => HabitSettingScreen(habitId: habitId), // Pass habitId
+            ),
+          );
+        } else {
+          debugPrint('ERROR: navigatorKey.currentState is null in background handler.');
+        }
+      });
+    }
+  }
+}
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for async operations before runApp
@@ -24,20 +119,21 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  final NotificationService notificationService = NotificationService();
-  await notificationService.initializeNotifications();
+  // Initialize global service instances
+  globalNotificationService = NotificationService();
+  globalHabitService = HabitService();
+
+  await globalNotificationService.initializeNotifications();
 
   // Request notification permissions after initialization
-  await notificationService.requestNotificationPermissions();
+  await globalNotificationService.requestNotificationPermissions();
 
   // Handle any notification launched when the app was terminated
-  // Use the global flutterLocalNotificationsPlugin instance
   final NotificationAppLaunchDetails? notificationAppLaunchDetails =
       await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
 
   if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
-    if (notificationAppLaunchDetails!.notificationResponse != null &&
-        notificationAppLaunchDetails.notificationResponse!.payload != null) {
+    if (notificationAppLaunchDetails!.notificationResponse != null) {
       // Direct call to the top-level handler
       notificationTapBackground(notificationAppLaunchDetails.notificationResponse!);
     }
@@ -54,10 +150,11 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  final HabitService _habitService = HabitService();
-  final NotificationService _notificationService = NotificationService();
+  // Use the global service instances
+  final HabitService _habitService = globalHabitService;
+  final NotificationService _notificationService = globalNotificationService;
 
-  StreamSubscription<List<Habit>>? _habitsSubscription;
+  StreamSubscription<List<Habit>>? _habitsSubscription; // Fixed: Habit type is now imported
 
   @override
   void initState() {

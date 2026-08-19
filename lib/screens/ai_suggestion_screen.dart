@@ -1,4 +1,5 @@
 // lib/screens/ai_suggestion_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:getsetgo/screens/logout_screen.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -22,15 +23,14 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
   int weeklyStreak = 0;
   int dailyGoal = 6; // Default, can be dynamic
   int dailyProgress = 0;
-  String morningJournalSuggestion = "We noticed you journal more in the morning. Switch time?";
+  String morningJournalSuggestion =
+      "We noticed you journal more in the morning. Switch time?";
 
   // StreamSubscription to manage the Firestore listener
   StreamSubscription<List<HabitEntry>>? _habitEntriesSubscription;
 
-  // --- RESTORED FEEDBACK ELEMENTS ---
   List<String> feedbackList = [];
   final TextEditingController _feedbackController = TextEditingController();
-  // --- END RESTORED FEEDBACK ELEMENTS ---
 
   @override
   void initState() {
@@ -51,30 +51,35 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
     // and then fetch entries for each of those habits.
     // For now, if you haven't created a habit with ID 'drinkWater'
     // this stream will likely be empty.
-    _habitEntriesSubscription = _habitService.getHabitEntriesForDateRange(
-      'drinkWater', // Assuming 'drinkWater' is a habitId
-      DateTime.now().subtract(const Duration(days: 7)),
-      DateTime.now(),
-    ).listen((entries) {
-      // Check if the widget is still mounted before calling setState
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _habitEntries = entries;
-        _calculateMetrics();
-        _analyzeJournalingTimes();
-      });
-    }, onError: (error) {
-      // Add error handling for the stream
-      print('Error fetching habit entries: $error');
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching habit data: $error")),
-      );
-    });
+    _habitEntriesSubscription = _habitService
+        .getHabitEntriesForDateRange(
+          'drinkWater', // Assuming 'drinkWater' is a habitId
+          DateTime.now().subtract(const Duration(days: 7)),
+          DateTime.now(),
+        )
+        .listen(
+      (entries) {
+        // Check if the widget is still mounted before calling setState
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _habitEntries = entries;
+          _calculateMetrics();
+          _analyzeJournalingTimes();
+        });
+      },
+      onError: (error) {
+        // Add error handling for the stream
+        print('Error fetching habit entries: $error');
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching habit data: $error")),
+        );
+      },
+    );
   }
 
   void _calculateMetrics() {
@@ -91,7 +96,8 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
         // Assuming 'notes' can indicate the quantity for water.
         // You might need a more robust way to store quantities.
         try {
-          final glassesLogged = int.tryParse(entry.notes!.split(' ')[0]); // Use tryParse for safety
+          final glassesLogged =
+              int.tryParse(entry.notes!.split(' ')[0]); // Use tryParse for safety
           currentDailyProgress += glassesLogged ?? 1; // Add 1 if parsing fails
         } catch (e) {
           currentDailyProgress++;
@@ -155,16 +161,19 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
         }
 
         setState(() {
-          morningJournalSuggestion = "We noticed you're most active in the $timeOfDay. Consider adjusting your reminders!";
+          morningJournalSuggestion =
+              "We noticed you're most active in the $timeOfDay. Consider adjusting your reminders!";
         });
       } else {
         setState(() {
-          morningJournalSuggestion = "We're still learning your habits! Keep logging for personalized insights.";
+          morningJournalSuggestion =
+              "We're still learning your habits! Keep logging for personalized insights.";
         });
       }
     } else {
       setState(() {
-        morningJournalSuggestion = "No journal entries found for analysis. Start logging your habits!";
+        morningJournalSuggestion =
+            "No habit entries found for analysis. Start logging your habits!";
       });
     }
   }
@@ -176,12 +185,14 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please log in to log water.")),
       );
-      print('DEBUG: User is NOT logged in. Cannot log water (from ai_suggestion_screen).'); // Added more explicit message
+      print(
+          'DEBUG: User is NOT logged in. Cannot log water (from ai_suggestion_screen).'); // Added more explicit message
       return;
     }
 
     // *** THIS IS THE CRUCIAL DEBUG PRINT ***
-    print('DEBUG: Current Authenticated User UID (from ai_suggestion_screen): ${user.uid}');
+    print(
+        'DEBUG: Current Authenticated User UID (from ai_suggestion_screen): ${user.uid}');
 
     if (dailyProgress < dailyGoal) {
       final newEntry = HabitEntry(
@@ -228,7 +239,6 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
     );
   }
 
-  // --- RESTORED submitFeedback METHOD ---
   void submitFeedback() {
     if (!mounted) return; // Check mounted before setState
     setState(() {
@@ -237,14 +247,12 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
         _feedbackController.clear();
       }
     });
-    // Navigator.pop(context) doesn't need mounted check as it's a direct navigation
     Navigator.pop(context); // Close the dialog
     if (!mounted) return; // Check mounted before showing SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Feedback submitted!")),
     );
   }
-  // --- END RESTORED submitFeedback METHOD ---
 
   @override
   void dispose() {
@@ -269,17 +277,17 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LogoutScreen()),
-              );
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.logout, color: Colors.white),
+        //     onPressed: () {
+        //       Navigator.push(
+        //         context,
+        //         MaterialPageRoute(builder: (context) => const LogoutScreen()),
+        //       );
+        //     },
+        //   ),
+        // ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -296,7 +304,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                 ),
               ),
               const Text(
-                'Aravind!',
+                'Aravind!', // You can make this dynamic by fetching user's name
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -304,6 +312,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                 ),
               ),
               const SizedBox(height: 30),
+
               // Drink Water Card
               Card(
                 color: Colors.white.withOpacity(0.7),
@@ -359,15 +368,17 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        // Add a unique heroTag if this button is part of a Hero animation
-                        // heroTag: 'logWaterFab', // Example unique tag
-                        child: const Text('+1 Glass', style: TextStyle(color: Colors.white)),
+                        child: const Text(
+                          '+1 Glass',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 15),
+
               // AI Suggestion Card
               Card(
                 color: const Color(0xFF1A3A69).withOpacity(0.8),
@@ -413,6 +424,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                               style: TextStyle(color: Color(0xFF1A3A69)),
                             ),
                           ),
+                          const SizedBox(width: 10),
                           OutlinedButton(
                             onPressed: rejectSuggestion,
                             style: OutlinedButton.styleFrom(
@@ -436,7 +448,9 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                               title: const Text('Tell us why'),
                               content: TextField(
                                 controller: _feedbackController,
-                                decoration: const InputDecoration(hintText: 'Your feedback...'),
+                                decoration: const InputDecoration(
+                                  hintText: 'Your feedback...',
+                                ),
                               ),
                               actions: [
                                 TextButton(
@@ -457,8 +471,10 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                 ),
               ),
               const SizedBox(height: 30),
+
+              // Added a text label to clarify the Y-axis of the graph
               const Text(
-                'Weekly Habit Trends',
+                'Weekly Habit Trends (Completions per Day)', // Clarified label
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -466,6 +482,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                 ),
               ),
               const SizedBox(height: 15),
+
               // Weekly Habit Trends Graph
               Card(
                 color: Colors.white.withOpacity(0.7),
@@ -482,6 +499,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                 ),
               ),
               const SizedBox(height: 15),
+
               // Journal Suggestion Card (Now dynamic based on _analyzeJournalingTimes)
               Card(
                 color: Colors.white.withOpacity(0.7),
@@ -495,7 +513,7 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        morningJournalSuggestion,
+                        morningJournalSuggestion, // This text dynamically suggests best time
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -508,9 +526,13 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                         children: [
                           OutlinedButton(
                             onPressed: () {
-                              if (!mounted) return; // Check mounted before showing SnackBar
+                              if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Time switch accepted (action to be implemented).")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Time switch accepted (action to be implemented).",
+                                  ),
+                                ),
                               );
                             },
                             style: OutlinedButton.styleFrom(
@@ -518,8 +540,10 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 25,
+                                vertical: 10,
+                              ),
                             ),
                             child: const Text(
                               'Yes',
@@ -529,9 +553,11 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                           const SizedBox(width: 10),
                           ElevatedButton(
                             onPressed: () {
-                              if (!mounted) return; // Check mounted before showing SnackBar
+                              if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Time switch dismissed.")),
+                                const SnackBar(
+                                  content: Text("Time switch dismissed."),
+                                ),
                               );
                             },
                             style: ElevatedButton.styleFrom(
@@ -539,8 +565,10 @@ class _AiSuggestionScreenState extends State<AiSuggestionScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 25,
+                                vertical: 10,
+                              ),
                             ),
                             child: const Text(
                               'No',
@@ -594,19 +622,25 @@ class _WeeklyHabitTrendGraph extends StatelessWidget {
     Map<int, int> completionsPerDay = {};
     DateTime now = DateTime.now();
 
+    // Initialize all 7 days of the week with 0 completions
     for (int i = 0; i < 7; i++) {
-      final date = now.subtract(Duration(days: 6 - i));
+      final date = now.subtract(
+        Duration(days: 6 - i), // Go back 6 days to get the start of the week
+      );
       completionsPerDay[date.weekday] = 0;
     }
 
     for (var entry in mockHabitData) {
-      if (entry.habitId == 'drinkWater' && entry.status == HabitStatus.completed) {
-        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
+      if (entry.habitId == 'drinkWater' &&
+          entry.status == HabitStatus.completed) {
+        final entryDate =
+            DateTime(entry.date.year, entry.date.month, entry.date.day);
         final todayNormalized = DateTime(now.year, now.month, now.day);
 
         int daysAgo = todayNormalized.difference(entryDate).inDays;
 
         if (daysAgo >= 0 && daysAgo < 7) {
+          // Only consider entries within the last 7 days
           completionsPerDay[entry.date.weekday] =
               (completionsPerDay[entry.date.weekday] ?? 0) + 1;
         }
@@ -687,7 +721,8 @@ class _WeeklyHabitTrendGraph extends StatelessWidget {
             ),
           ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(
           show: true,
@@ -696,7 +731,7 @@ class _WeeklyHabitTrendGraph extends StatelessWidget {
         minX: 0,
         maxX: 6,
         minY: 0,
-        maxY: 10,
+        maxY: 10, // Max Y-axis value, adjust based on expected max completions
         lineBarsData: [
           LineChartBarData(
             spots: getChartData(),

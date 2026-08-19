@@ -1,4 +1,5 @@
 // lib/screens/help_and_support_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // REQUIRED: Import the url_launcher package
 import 'package:getsetgo/widgets/animated_background.dart';
@@ -17,7 +18,6 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
   final TextEditingController _commentController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
   @override
@@ -43,13 +43,13 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
 
       // Construct the email body
       final String emailBody = '''
-        Name: $name
-        Email Address: $email
-        Mobile Number: $mobileNumber
-        
-        Comment:
-        $comment
-      ''';
+Name: $name
+Email Address: $email
+Mobile Number: $mobileNumber
+
+Comment:
+$comment
+''';
 
       // Create a mailto URI
       final Uri emailLaunchUri = Uri(
@@ -70,6 +70,7 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
               const SnackBar(content: Text('Opening email app...')),
             );
           }
+
           // Clear the fields after a successful submission
           _nameController.clear();
           _emailController.clear();
@@ -98,14 +99,26 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
     }
   }
 
-  Widget _buildTextField(BuildContext context, String label, String hint, TextEditingController controller, {int maxLines = 1, TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator}) {
+  Widget _buildTextField(
+    BuildContext context,
+    String label,
+    String hint,
+    TextEditingController controller, {
+    int maxLines = 1,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
     // ... your existing _buildTextField method, no changes needed here ...
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -121,7 +134,8 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: const BorderRadius.all(Radius.circular(10)),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+              borderSide:
+                  BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
             ),
             enabledBorder: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -129,7 +143,8 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
             ),
             filled: true,
             fillColor: Colors.white.withOpacity(0.8),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
           style: const TextStyle(color: Colors.black),
           validator: validator,
@@ -267,7 +282,10 @@ class _HelpAndSupportScreenState extends State<HelpAndSupportScreen> {
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'Submit',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),

@@ -1,7 +1,5 @@
-// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // REQUIRED: For Firebase Authentication
 import 'package:getsetgo/widgets/animated_background.dart';
 
 import 'main_app_screen.dart';
@@ -18,6 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -39,12 +38,15 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
       // --- ADDED DEBUG PRINT HERE ---
       User? loggedInUser = FirebaseAuth.instance.currentUser;
       if (loggedInUser != null) {
-        print('DEBUG: Login successful! User UID (from login_screen - Email/Password): ${loggedInUser.uid}');
+        print(
+            'DEBUG: Login successful! User UID (from login_screen - Email/Password): ${loggedInUser.uid}');
       } else {
-        print('DEBUG: Login seemed successful, but currentUser is null in login_screen (Email/Password).');
+        print(
+            'DEBUG: Login seemed successful, but currentUser is null in login_screen (Email/Password).');
       }
       // --- END DEBUG PRINT ---
 
@@ -67,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         message = 'Login failed: ${e.message}';
       }
+
       setState(() {
         _errorMessage = message;
       });
@@ -83,73 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      // --- ADDED DEBUG PRINT HERE ---
-      User? loggedInUser = FirebaseAuth.instance.currentUser;
-      if (loggedInUser != null) {
-        print('DEBUG: Login successful! User UID (from login_screen - Google): ${loggedInUser.uid}');
-      } else {
-        print('DEBUG: Login seemed successful, but currentUser is null in login_screen (Google).');
-      }
-      // --- END DEBUG PRINT ---
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed in with Google successfully!')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainAppScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      String message;
-      if (e.code == 'account-exists-with-different-credential') {
-        message = 'Account already exists with a different sign-in method.';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Google Sign-In failed due to invalid credentials.';
-      } else {
-        message = 'Google Sign-In failed: ${e.message}';
-      }
-      setState(() {
-        _errorMessage = message;
-      });
-      print('Google Sign-In Firebase Auth Error: ${e.code} - ${e.message}');
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred during Google Sign-In: ${e.toString()}';
-      });
-      print('General Google Sign-In Error: ${e.toString()}');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+  // Removed: _signInWithGoogle method
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
+                  'assets/images/getsetgo_logo.png',
                   height: 120,
                   color: Colors.white,
                   colorBlendMode: BlendMode.modulate,
@@ -179,6 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
+
                 if (_errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15.0),
@@ -188,6 +126,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: const TextStyle(color: Colors.red, fontSize: 16),
                     ),
                   ),
+
+                // Email Field
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -203,6 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: const TextStyle(color: Colors.black),
                 ),
                 const SizedBox(height: 10),
+
+                // Password Field
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
@@ -218,13 +160,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: const TextStyle(color: Colors.black),
                 ),
                 const SizedBox(height: 10),
+
+                // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
+                        ),
                       );
                     },
                     child: const Text(
@@ -234,6 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // Login Button
                 _isLoading
                     ? const CircularProgressIndicator(color: Colors.blue)
                     : ElevatedButton(
@@ -249,6 +197,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text('Login'),
                       ),
                 const SizedBox(height: 10),
+
+                // Signup Redirect
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -258,10 +208,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // Changed from pushReplacement to push
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const SignupScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SignupScreen(),
+                          ),
                         );
                       },
                       child: const Text(
@@ -271,15 +222,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                const Text(
-                  "Or continue with",
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: _signInWithGoogle,
-                  child: Image.asset('assets/images/google_icon.png', height: 30),
-                ),
               ],
             ),
           ),
@@ -288,3 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
+
+
